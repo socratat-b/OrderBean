@@ -1,3 +1,4 @@
+import { generateToken } from "@/lib/jwt";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
@@ -39,10 +40,13 @@ export async function POST(request: NextRequest) {
     // Don't send password back
     const { password: _, ...userWithoutPassword } = user;
 
+    const token = generateToken(user.id, user.email, user.role);
+
     return NextResponse.json(
       {
         message: "Login successful",
         user: userWithoutPassword,
+        token,
       },
       { status: 200 },
     );
