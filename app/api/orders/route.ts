@@ -2,6 +2,16 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+// Define proper types
+interface OrderItemInput {
+  productId: string;
+  quantity: number;
+}
+
+interface CreateOrderBody {
+  items: OrderItemInput[];
+}
+
 // GET /api/orders - Get user's orders (Protected)
 export async function GET(request: NextRequest) {
   try {
@@ -50,8 +60,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { items } = body; // items: [{ productId, quantity }]
+    const body: CreateOrderBody = await request.json();
+    const { items } = body;
 
     // Validate items
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -62,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch products to calculate total
-    const productIds = items.map((item: any) => item.productId);
+    const productIds = items.map((item) => item.productId);
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
@@ -80,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate total
     let total = 0;
-    const orderItems = items.map((item: any) => {
+    const orderItems = items.map((item) => {
       const product = products.find((p) => p.id === item.productId);
       if (!product) throw new Error("Product not found");
 
