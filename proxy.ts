@@ -44,5 +44,6 @@ export const config = {
     "/api/orders/:path*", // Customer orders
     "/api/profile/:path*", // Customer profile
     "/api/staff/:path*", // Staff dashboard
+    "/api/owner/:path*", //Owner dashboard
   ],
 };
