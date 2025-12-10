@@ -1,11 +1,13 @@
 "use client";
-
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useState } from "react";
 import SideBar from "./Sidebar";
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, logout } = useAuth();
+
   const handleCloseSidebar = () => {
     setIsOpen(false);
   };
@@ -17,12 +19,18 @@ export default function Header() {
           <h1 className="text-2xl font-black tracking-tighter lg:text-xl">
             <Link href={"/"}>OrderBean</Link>
           </h1>
+
           {/* Header Navigation */}
           <nav className="hidden md:block">
             <ul className="flex items-center justify-center gap-6 text-lg font-semibold tracking-tighter lg:gap-12">
               <li>
                 <Link href={"/menu"}>Menu</Link>
               </li>
+              {user && (
+                <li>
+                  <Link href={"/orders"}>My Orders</Link>
+                </li>
+              )}
               <li>
                 <Link href={"#about"}>About</Link>
               </li>
@@ -32,8 +40,9 @@ export default function Header() {
             </ul>
           </nav>
 
-          {/* Mobile Search, Cart, Menu Buttons */}
+          {/* Desktop & Mobile Actions */}
           <div className="flex items-center justify-center gap-4 md:gap-6">
+            {/* Search Button */}
             <button>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -48,6 +57,8 @@ export default function Header() {
                 />
               </svg>
             </button>
+
+            {/* Cart Button */}
             <button>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -59,12 +70,43 @@ export default function Header() {
               </svg>
             </button>
 
-            <button onClick={() => setIsOpen(true)}>
+            {/* Auth Section - Desktop */}
+            <div className="hidden md:flex md:items-center md:gap-4">
+              {user ? (
+                <>
+                  <span className="text-sm font-medium">Hi, {user.name}!</span>
+                  <button
+                    onClick={logout}
+                    className="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="text-sm font-semibold hover:underline"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="rounded-md bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+                  >
+                    Sign up
+                  </Link>
+                </>
+              )}
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button onClick={() => setIsOpen(true)} className="md:hidden">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 fill="currentColor"
-                className="size-6 md:hidden md:size-8"
+                className="size-6"
               >
                 <path
                   fillRule="evenodd"
@@ -76,7 +118,6 @@ export default function Header() {
           </div>
         </div>
       </header>
-
       <SideBar isOpen={isOpen} onClose={handleCloseSidebar} />
     </>
   );
