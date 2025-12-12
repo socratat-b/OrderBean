@@ -1,27 +1,152 @@
 @import "tailwindcss";
 
+/* Light Mode Colors */
 :root {
+  /* Background Colors */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0a0a0a;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+
+  /* Brand Colors - Coffee Theme */
+  --primary: #78350f; /* Brown-900 */
+  --primary-foreground: #ffffff;
+  --primary-hover: #92400e; /* Brown-800 */
+
+  --secondary: #f59e0b; /* Amber-500 */
+  --secondary-foreground: #ffffff;
+  --secondary-hover: #d97706; /* Amber-600 */
+
+  --accent: #fbbf24; /* Amber-400 */
+  --accent-foreground: #78350f;
+
+  /* UI Colors */
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #78350f;
+
+  /* Status Colors */
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --error: #dc2626;
+  --info: #3b82f6;
+}
+
+/* Dark Mode Colors */
+.dark {
+  /* Background Colors */
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+
+  /* Brand Colors - Coffee Theme (adjusted for dark mode) */
+  --primary: #fbbf24; /* Amber-400 */
+  --primary-foreground: #0a0a0a;
+  --primary-hover: #f59e0b; /* Amber-500 */
+
+  --secondary: #92400e; /* Brown-800 */
+  --secondary-foreground: #fafafa;
+  --secondary-hover: #78350f; /* Brown-900 */
+
+  --accent: #d97706; /* Amber-600 */
+  --accent-foreground: #fafafa;
+
+  /* UI Colors */
+  --card: #171717;
+  --card-foreground: #fafafa;
+  --border: #404040;
+  --input: #404040;
+  --ring: #fbbf24;
+
+  /* Status Colors */
+  --success: #22c55e;
+  --warning: #fbbf24;
+  --error: #ef4444;
+  --info: #60a5fa;
 }
 
 @theme inline {
+  /* Map CSS variables to Tailwind utilities */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-hover: var(--secondary-hover);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* system/browser is dark mode */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Smooth transitions for theme switching */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disable transitions on theme change to prevent flash */
+.no-transition * {
+  transition: none !important;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
