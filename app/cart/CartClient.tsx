@@ -286,7 +286,7 @@ export default function CartClient({ user }: CartClientProps) {
             </button>
 
             <button
-              onClick={clearCart}
+              onClick={handleClearCart}
               className="w-full rounded-lg border border-border px-6 py-3 text-sm font-semibold text-card-foreground hover:bg-muted transition-colors"
             >
               Clear Cart
@@ -301,6 +301,34 @@ export default function CartClient({ user }: CartClientProps) {
           </div>
         </div>
       </div>
+
+      {/* Clear Cart Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-lg bg-card p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-card-foreground">
+              Clear Cart?
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Are you sure you want to clear all items from your cart? This action cannot be undone.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-card-foreground hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmClearCart}
+                className="flex-1 rounded-lg bg-error px-4 py-2 text-sm font-semibold text-white hover:bg-error/90 transition-colors"
+              >
+                Clear Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
