@@ -1,8 +1,6 @@
 // app/staff/page.tsx
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface OrderItem {
@@ -32,8 +30,6 @@ interface Order {
 type OrderStatus = "ALL" | "PENDING" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED";
 
 export default function StaffDashboard() {
-  const { user, token } = useAuth();
-  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,19 +38,8 @@ export default function StaffDashboard() {
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !token) {
-      router.push("/login");
-      return;
-    }
-
-    // Check if user is STAFF or OWNER
-    if (user.role !== "STAFF" && user.role !== "OWNER") {
-      router.push("/");
-      return;
-    }
-
     fetchOrders();
-  }, [user, token, router]);
+  }, []);
 
   useEffect(() => {
     // Filter orders based on selected status
@@ -68,11 +53,7 @@ export default function StaffDashboard() {
   async function fetchOrders() {
     try {
       setLoading(true);
-      const response = await fetch("/api/staff/orders", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch("/api/staff/orders");
 
       if (!response.ok) {
         if (response.status === 403) {
@@ -97,7 +78,6 @@ export default function StaffDashboard() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ status: newStatus }),
       });

@@ -1,9 +1,7 @@
 // app/owner/products/page.tsx
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface Product {
@@ -19,8 +17,6 @@ interface Product {
 }
 
 export default function ProductsManagement() {
-  const { user, token } = useAuth();
-  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -40,28 +36,13 @@ export default function ProductsManagement() {
   });
 
   useEffect(() => {
-    if (!user || !token) {
-      router.push("/login");
-      return;
-    }
-
-    // Check if user is OWNER
-    if (user.role !== "OWNER") {
-      router.push("/");
-      return;
-    }
-
     fetchProducts();
-  }, [user, token, router]);
+  }, []);
 
   async function fetchProducts() {
     try {
       setLoading(true);
-      const response = await fetch("/api/owner/products", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch("/api/owner/products");
 
       if (!response.ok) {
         if (response.status === 403) {
@@ -133,7 +114,6 @@ export default function ProductsManagement() {
         method,
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: formData.name,
@@ -169,9 +149,6 @@ export default function ProductsManagement() {
       setDeletingId(productId);
       const response = await fetch(`/api/owner/products/${productId}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
       });
 
       if (!response.ok) {
@@ -194,7 +171,6 @@ export default function ProductsManagement() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           available: !product.available,

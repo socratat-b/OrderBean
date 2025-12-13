@@ -1,9 +1,7 @@
 // app/owner/page.tsx
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface OrdersByStatus {
@@ -55,35 +53,18 @@ interface Analytics {
 }
 
 export default function OwnerDashboard() {
-  const { user, token } = useAuth();
-  const router = useRouter();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!user || !token) {
-      router.push("/login");
-      return;
-    }
-
-    // Check if user is OWNER
-    if (user.role !== "OWNER") {
-      router.push("/");
-      return;
-    }
-
     fetchAnalytics();
-  }, [user, token, router]);
+  }, []);
 
   async function fetchAnalytics() {
     try {
       setLoading(true);
-      const response = await fetch("/api/owner/analytics", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch("/api/owner/analytics");
 
       if (!response.ok) {
         if (response.status === 403) {

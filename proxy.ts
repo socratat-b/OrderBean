@@ -1,49 +1,43 @@
 // proxy.ts
-import { verifyToken } from "@/lib/jwt";
 import { NextRequest, NextResponse } from "next/server";
+import { decrypt } from "@/lib/session";
+import { cookies } from "next/headers";
 
-export function proxy(request: NextRequest) {
-  // ✅ Get token from Authorization HEADER
-  const authHeader = request.headers.get("authorization");
-  const token = authHeader?.split(" ")[1];
+// 1. Specify protected and public routes
+const protectedRoutes = ["/cart", "/orders", "/staff", "/owner"];
+const authRoutes = ["/login", "/register"];
 
-  if (!token) {
-    return NextResponse.json(
-      { error: "Authentication required" },
-      { status: 401 },
-    );
+export default async function proxy(req: NextRequest) {
+  // 2. Check if the current route is protected or public
+  const path = req.nextUrl.pathname;
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    path.startsWith(route)
+  );
+  const isAuthRoute = authRoutes.includes(path);
+
+  // 3. Decrypt the session from the cookie
+  const cookie = (await cookies()).get("session")?.value;
+  const session = await decrypt(cookie);
+
+  // 4. Redirect to /login if the user is not authenticated and trying to access protected route
+  if (isProtectedRoute && !session?.userId) {
+    return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
-  // Verify token
-  const decoded = verifyToken(token);
-
-  if (!decoded) {
-    return NextResponse.json(
-      { error: "Token expired or invalid. Please login again." },
-      { status: 401 },
-    );
+  // 5. Redirect to /menu if the user is authenticated and trying to access auth routes
+  if (isAuthRoute && session?.userId) {
+    return NextResponse.redirect(new URL("/menu", req.nextUrl));
   }
 
-  // Token valid! Add user info to REQUEST headers
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-user-id", decoded.userId);
-  requestHeaders.set("x-user-email", decoded.email);
-  requestHeaders.set("x-user-role", decoded.role);
+  // 6. Redirect home (/) to /menu if authenticated
+  if (path === "/" && session?.userId) {
+    return NextResponse.redirect(new URL("/menu", req.nextUrl));
+  }
 
-  // Continue to route with user info
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  return NextResponse.next();
 }
 
-// Protect these coffee shop routes
+// Routes Proxy should not run on
 export const config = {
-  matcher: [
-    "/api/orders/:path*", // Customer orders
-    "/api/profile/:path*", // Customer profile
-    "/api/staff/:path*", // Staff dashboard
-    "/api/owner/:path*", //Owner dashboard
-  ],
+  matcher: ["/((?!api|_next/static|_next/image|.*\\.png$).*)"],
 };

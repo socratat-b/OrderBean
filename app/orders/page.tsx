@@ -1,8 +1,6 @@
 // app/orders/page.tsx
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 interface OrderItem {
@@ -25,25 +23,14 @@ interface Order {
 }
 
 export default function OrdersPage() {
-  const { user, token } = useAuth();
-  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!user || !token) {
-      router.push("/login");
-      return;
-    }
-
     async function fetchOrders() {
       try {
-        const response = await fetch("/api/orders", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await fetch("/api/orders");
 
         if (!response.ok) {
           throw new Error("Failed to fetch orders");
@@ -59,7 +46,7 @@ export default function OrdersPage() {
     }
 
     fetchOrders();
-  }, [user, token, router]);
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {

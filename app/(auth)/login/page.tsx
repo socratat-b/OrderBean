@@ -1,35 +1,13 @@
-// app/login/page.tsx
+// app/(auth)/login/page.tsx
 "use client";
 
-import { useAuth } from "@/context/AuthContext"; // ← Root level import!
+import { login } from "@/actions/auth";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useActionState } from "react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const { login } = useAuth();
-  const router = useRouter();
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      await login(email, password);
-      router.push("/"); // Redirect to home after login
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [state, action, pending] = useActionState(login, undefined);
 
   return (
     <div className="flex min-h-screen">
@@ -58,11 +36,11 @@ export default function LoginPage() {
           </div>
 
           <div className="mt-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
+            <form action={action} className="space-y-6">
+              {state?.message && (
                 <div className="rounded-md bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
                   <p className="text-sm text-red-800 dark:text-red-200">
-                    {error}
+                    {state.message}
                   </p>
                 </div>
               )}
@@ -81,11 +59,12 @@ export default function LoginPage() {
                     type="email"
                     autoComplete="email"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                     className="block w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground shadow-sm placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-colors"
                     placeholder="you@example.com"
                   />
+                  {state?.errors?.email && (
+                    <p className="mt-2 text-sm text-red-600">{state.errors.email}</p>
+                  )}
                 </div>
 
                 <div>
@@ -101,20 +80,21 @@ export default function LoginPage() {
                     type="password"
                     autoComplete="current-password"
                     required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     className="block w-full rounded-lg border border-border bg-card px-4 py-3 text-foreground shadow-sm placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-colors"
                     placeholder="••••••••"
                   />
+                  {state?.errors?.password && (
+                    <p className="mt-2 text-sm text-red-600">{state.errors.password}</p>
+                  )}
                 </div>
               </div>
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={pending}
                 className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-md hover:bg-primary-hover focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                {loading ? "Signing in..." : "Sign in"}
+                {pending ? "Signing in..." : "Sign in"}
               </button>
 
               <p className="text-center text-sm text-muted-foreground">

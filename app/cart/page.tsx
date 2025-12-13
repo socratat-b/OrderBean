@@ -1,7 +1,7 @@
 // app/cart/page.tsx
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
+import { createOrder } from "@/actions/orders";
 import { useCart } from "@/context/CartContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,19 +9,13 @@ import { useState } from "react";
 
 export default function CartPage() {
   const { items, removeFromCart, updateQuantity, total, clearCart } = useCart();
-  const { user, token } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handleCheckout = async () => {
-    if (!user || !token) {
-      router.push("/login");
-      return;
-    }
-
     if (items.length === 0) {
-      alert("Your cart is empty!");
+      alert("Your order is empty!");
       return;
     }
 
@@ -29,32 +23,22 @@ export default function CartPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          items: items.map((item) => ({
-            productId: item.product.id,
-            quantity: item.quantity,
-          })),
-        }),
-      });
+      const result = await createOrder(
+        items.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        }))
+      );
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to place order");
+      if (result.error) {
+        throw new Error(result.error);
       }
 
-      const data = await response.json();
-
-      // Clear cart after successful order
+      // Clear order after successful placement
       clearCart();
 
       // Show success message
-      alert(`Order placed successfully! Order ID: ${data.order.id}`);
+      alert(`Order placed successfully! Order ID: ${result.order?.id}`);
 
       // Redirect to orders page
       router.push("/orders");
@@ -84,7 +68,7 @@ export default function CartPage() {
             />
           </svg>
           <h2 className="mt-6 text-2xl font-bold text-foreground">
-            Your cart is empty
+            Your order is empty
           </h2>
           <p className="mt-2 text-muted-foreground">
             Add some delicious items to get started!
@@ -103,9 +87,31 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-background px-4 py-12">
       <div className="mx-auto max-w-4xl">
-        <h1 className="text-3xl font-bold text-foreground">Shopping Cart</h1>
+        {/* Back to Menu Button */}
+        <Link
+          href="/menu"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="h-4 w-4"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.75 19.5 8.25 12l7.5-7.5"
+            />
+          </svg>
+          Back to Menu
+        </Link>
+
+        <h1 className="text-3xl font-bold text-foreground">Your Order</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {items.length} {items.length === 1 ? "item" : "items"} in your cart
+          {items.length} {items.length === 1 ? "item" : "items"} in your order
         </p>
 
         {error && (
@@ -179,7 +185,7 @@ export default function CartPage() {
               <button
                 onClick={() => removeFromCart(item.product.id)}
                 className="text-error hover:text-error/80 transition-colors"
-                title="Remove from cart"
+                title="Remove from order"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -227,44 +233,21 @@ export default function CartPage() {
             </div>
           </div>
 
-          {!user && (
-            <div className="mt-4 rounded-lg bg-warning/10 border border-warning/20 p-3">
-              <p className="text-sm text-warning">
-                Please{" "}
-                <Link href="/login" className="font-semibold underline">
-                  login
-                </Link>{" "}
-                to place your order.
-              </p>
-            </div>
-          )}
-
           <div className="mt-6 space-y-3">
             <button
               onClick={handleCheckout}
               disabled={loading}
               className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-50"
             >
-              {loading
-                ? "Placing Order..."
-                : user
-                  ? "Place Order"
-                  : "Login to Checkout"}
+              {loading ? "Placing Order..." : "Place Order"}
             </button>
 
             <button
               onClick={clearCart}
               className="w-full rounded-lg border border-border px-6 py-3 text-sm font-semibold text-card-foreground hover:bg-muted transition-colors"
             >
-              Clear Cart
+              Clear Order
             </button>
-
-            <Link
-              href="/menu"
-              className="block w-full rounded-lg border border-border px-6 py-3 text-center text-sm font-semibold text-card-foreground hover:bg-muted transition-colors"
-            >
-              Continue Shopping
-            </Link>
           </div>
         </div>
       </div>

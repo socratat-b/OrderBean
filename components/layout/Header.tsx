@@ -1,15 +1,21 @@
 "use client";
-import { useAuth } from "@/context/AuthContext";
+import { logout } from "@/actions/auth";
 import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import SideBar from "./Sidebar";
 
-export default function Header() {
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: "CUSTOMER" | "STAFF" | "OWNER";
+} | null;
+
+export default function Header({ user }: { user: User }) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { user, logout } = useAuth();
   const { itemCount } = useCart();
   const { theme, toggleTheme } = useTheme();
 
@@ -35,10 +41,7 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:block">
-            <ul
-              suppressHydrationWarning
-              className="flex items-center justify-center gap-8 text-base font-semibold text-foreground"
-            >
+            <ul className="flex items-center justify-center gap-8 text-base font-semibold text-foreground">
               {/* Menu - Always visible */}
               <li>
                 <Link
@@ -49,81 +52,85 @@ export default function Header() {
                 </Link>
               </li>
 
-              {/* Guest Navigation */}
-              {!user && (
+              {mounted && (
                 <>
-                  <li>
-                    <Link
-                      href={"/#about"}
-                      className="transition-colors hover:text-primary"
-                    >
-                      About
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href={"/#location"}
-                      className="transition-colors hover:text-primary"
-                    >
-                      Location
-                    </Link>
-                  </li>
-                </>
-              )}
+                  {/* Guest Navigation */}
+                  {!user && (
+                    <>
+                      <li>
+                        <Link
+                          href={"/#about"}
+                          className="transition-colors hover:text-primary"
+                        >
+                          About
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href={"/#location"}
+                          className="transition-colors hover:text-primary"
+                        >
+                          Location
+                        </Link>
+                      </li>
+                    </>
+                  )}
 
-              {/* Customer Navigation */}
-              {user && user.role === "CUSTOMER" && (
-                <li>
-                  <Link
-                    href={"/orders"}
-                    className="transition-colors hover:text-primary"
-                  >
-                    My Orders
-                  </Link>
-                </li>
-              )}
+                  {/* Customer Navigation */}
+                  {user && user.role === "CUSTOMER" && (
+                    <li>
+                      <Link
+                        href={"/orders"}
+                        className="transition-colors hover:text-primary"
+                      >
+                        My Orders
+                      </Link>
+                    </li>
+                  )}
 
-              {/* Staff Navigation */}
-              {user && user.role === "STAFF" && (
-                <>
-                  <li>
-                    <Link
-                      href={"/staff"}
-                      className="transition-colors hover:text-primary"
-                    >
-                      Staff Dashboard
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href={"/orders"}
-                      className="transition-colors hover:text-primary"
-                    >
-                      My Orders
-                    </Link>
-                  </li>
-                </>
-              )}
+                  {/* Staff Navigation */}
+                  {user && user.role === "STAFF" && (
+                    <>
+                      <li>
+                        <Link
+                          href={"/staff"}
+                          className="transition-colors hover:text-primary"
+                        >
+                          Staff Dashboard
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href={"/orders"}
+                          className="transition-colors hover:text-primary"
+                        >
+                          My Orders
+                        </Link>
+                      </li>
+                    </>
+                  )}
 
-              {/* Owner Navigation */}
-              {user && user.role === "OWNER" && (
-                <>
-                  <li>
-                    <Link
-                      href={"/owner"}
-                      className="transition-colors hover:text-primary"
-                    >
-                      Owner Dashboard
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href={"/staff"}
-                      className="transition-colors hover:text-primary"
-                    >
-                      Staff Dashboard
-                    </Link>
-                  </li>
+                  {/* Owner Navigation */}
+                  {user && user.role === "OWNER" && (
+                    <>
+                      <li>
+                        <Link
+                          href={"/owner"}
+                          className="transition-colors hover:text-primary"
+                        >
+                          Owner Dashboard
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href={"/staff"}
+                          className="transition-colors hover:text-primary"
+                        >
+                          Staff Dashboard
+                        </Link>
+                      </li>
+                    </>
+                  )}
                 </>
               )}
             </ul>
@@ -183,41 +190,44 @@ export default function Header() {
             </Link>
 
             {/* Auth Section - Desktop */}
-            <div
-              className="hidden md:flex md:items-center md:gap-4"
-              suppressHydrationWarning
-            >
-              {user ? (
+            <div className="hidden md:flex md:items-center md:gap-4">
+              {mounted && (
                 <>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-foreground">
-                      {user.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground capitalize">
-                      {user.role.toLowerCase()}
-                    </p>
-                  </div>
-                  <button
-                    onClick={logout}
-                    className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/login"
-                    className="text-sm font-semibold text-foreground transition-colors hover:text-primary"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    href="/register"
-                    className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
-                  >
-                    Sign up
-                  </Link>
+                  {user ? (
+                    <>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-foreground">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {user.role.toLowerCase()}
+                        </p>
+                      </div>
+                      <form action={logout}>
+                        <button
+                          type="submit"
+                          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+                        >
+                          Logout
+                        </button>
+                      </form>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/login"
+                        className="text-sm font-semibold text-foreground transition-colors hover:text-primary"
+                      >
+                        Login
+                      </Link>
+                      <Link
+                        href="/register"
+                        className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+                      >
+                        Sign up
+                      </Link>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -244,7 +254,7 @@ export default function Header() {
           </div>
         </div>
       </header>
-      <SideBar isOpen={isOpen} onClose={handleCloseSidebar} />
+      <SideBar isOpen={isOpen} onClose={handleCloseSidebar} user={user} />
     </>
   );
 }

@@ -1,19 +1,21 @@
 "use client";
-import { useAuth } from "@/context/AuthContext";
+import { logout } from "@/actions/auth";
 import Link from "next/link";
+
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: "CUSTOMER" | "STAFF" | "OWNER";
+} | null;
 
 interface SideBarProps {
   isOpen: boolean;
   onClose: () => void;
+  user: User;
 }
 
-export default function SideBar({ isOpen, onClose }: SideBarProps) {
-  const { user, logout } = useAuth();
-
-  const handleLogout = () => {
-    logout();
-    onClose();
-  };
+export default function SideBar({ isOpen, onClose, user }: SideBarProps) {
 
   return (
     <>
@@ -301,12 +303,14 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
             className="border-t border-border bg-muted px-6 py-4"
           >
             {user ? (
-              <button
-                onClick={handleLogout}
-                className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
-              >
-                Logout
-              </button>
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover"
+                >
+                  Logout
+                </button>
+              </form>
             ) : (
               <div className="space-y-3">
                 <Link
