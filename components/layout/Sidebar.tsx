@@ -18,27 +18,29 @@ export default function SideBar({ isOpen, onClose }: SideBarProps) {
   return (
     <>
       {/* Backdrop */}
-      {isOpen && (
-        <div
-          className="bg-opacity-50 fixed inset-0 z-40 bg-black md:hidden"
-          onClick={onClose}
-        />
-      )}
+      <div
+        className={`fixed inset-0 z-40 bg-black transition-opacity md:hidden ${
+          isOpen ? "opacity-50" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={onClose}
+      />
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 right-0 z-50 h-screen w-80 transform bg-background shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
+        className={`fixed top-0 right-0 z-50 h-screen w-full bg-background shadow-2xl transition-transform md:hidden ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex h-full flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-5">
-            <h2 className="text-xl font-bold text-foreground">Menu</h2>
+          {/* Header with Logo */}
+          <div className="flex items-center justify-between bg-background border-b border-border px-4 py-4 shadow-md">
+            <h2 className="text-2xl font-black tracking-tighter text-foreground transition-colors hover:text-primary">
+              OrderBean ☕
+            </h2>
             <button
               onClick={onClose}
               aria-label="Close menu"
-              className="transition-opacity hover:opacity-70 text-foreground"
+              className="rounded-lg p-2 transition-colors hover:bg-muted text-foreground"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

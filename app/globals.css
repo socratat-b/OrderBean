@@ -101,29 +101,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* Smooth transitions for theme switching */
-/* Exclude transform to not interfere with custom animations */
-*:not(img):not(svg):not(path) {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 200ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Images handle their own transitions - no global overrides */
-img {
-  transition: none;
-}
-
-/* Disable transitions on theme change to prevent flash */
-.no-transition * {
-  transition: none !important;
-}
-
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-family:
+    var(--font-sans),
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-feature-settings:
+    "rlig" 1,
+    "calt" 1;
 }
 
 /* Scrollbar Styling */

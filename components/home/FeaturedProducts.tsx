@@ -69,7 +69,7 @@ export default function FeaturedProducts({
                       alt={product.name}
                       width={400}
                       height={300}
-                      className="h-48 w-full object-cover transition-transform duration-[5000ms] ease-in-out group-hover:scale-110"
+                      className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-110"
                     />
                   </div>
                 )}
