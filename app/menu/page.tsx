@@ -3,9 +3,8 @@
 
 import { useEffect, useState } from "react";
 
-import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
-import { useRouter } from "next/navigation";
+import { useToast } from "@/context/ToastContext";
 
 interface Product {
   id: string;
@@ -24,17 +23,11 @@ export default function MenuPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   const { addToCart } = useCart();
-  const { user } = useAuth();
-  const router = useRouter();
+  const { addToast } = useToast();
 
   const handleAddToCart = (product: Product) => {
-    if (!user) {
-      router.push("/login");
-      return;
-    }
     addToCart(product, 1);
-    // Optional: Show toast notification
-    alert(`Added ${product.name} to cart!`);
+    addToast(`${product.name} added to cart!`, "success");
   };
 
   // Fetch products on mount
@@ -68,10 +61,10 @@ export default function MenuPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-black"></div>
-          <p className="mt-4 text-gray-600">Loading menu...</p>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-muted border-t-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading menu...</p>
         </div>
       </div>
     );
@@ -79,12 +72,12 @@ export default function MenuPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <p className="text-red-600">Error: {error}</p>
+          <p className="text-error">Error: {error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800"
+            className="mt-4 rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover transition-colors"
           >
             Retry
           </button>
@@ -94,14 +87,14 @@ export default function MenuPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-12 md:px-8">
+    <div className="min-h-screen bg-background px-4 py-12 md:px-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-10 text-center">
-          <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
             Our Menu
           </h1>
-          <p className="mt-3 text-lg text-gray-600">
+          <p className="mt-3 text-lg text-muted-foreground">
             Discover our selection of delicious coffee and pastries
           </p>
         </div>
@@ -114,8 +107,8 @@ export default function MenuPage() {
               onClick={() => setSelectedCategory(category)}
               className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all ${
                 selectedCategory === category
-                  ? "bg-black text-white shadow-md"
-                  : "bg-white text-gray-700 shadow-sm hover:bg-gray-100"
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "bg-card text-card-foreground border border-border shadow-sm hover:bg-muted"
               }`}
             >
               {category}
@@ -124,7 +117,7 @@ export default function MenuPage() {
         </div>
 
         {/* Products Count */}
-        <p className="mb-6 text-center text-sm text-gray-500">
+        <p className="mb-6 text-center text-sm text-muted-foreground">
           {filteredProducts.length}{" "}
           {filteredProducts.length === 1 ? "item" : "items"}
         </p>
@@ -132,7 +125,7 @@ export default function MenuPage() {
         {/* Products Grid */}
         {filteredProducts.length === 0 ? (
           <div className="py-20 text-center">
-            <p className="text-lg text-gray-500">
+            <p className="text-lg text-muted-foreground">
               No products found in this category.
             </p>
           </div>
@@ -141,10 +134,10 @@ export default function MenuPage() {
             {filteredProducts.map((product) => (
               <div
                 key={product.id}
-                className="group overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-all hover:shadow-lg"
+                className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-lg"
               >
                 {/* Product Image */}
-                <div className="relative aspect-square overflow-hidden bg-gray-100">
+                <div className="relative aspect-square overflow-hidden bg-muted">
                   {product.imageUrl ? (
                     <img
                       src={product.imageUrl}
@@ -152,7 +145,7 @@ export default function MenuPage() {
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-gray-400">
+                    <div className="flex h-full items-center justify-center text-muted-foreground">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
@@ -173,7 +166,7 @@ export default function MenuPage() {
                   {/* Availability Badge */}
                   {!product.available && (
                     <div className="bg-opacity-60 absolute inset-0 flex items-center justify-center bg-black">
-                      <span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-gray-900">
+                      <span className="rounded-full bg-card px-4 py-2 text-sm font-bold text-card-foreground">
                         Out of Stock
                       </span>
                     </div>
@@ -181,41 +174,46 @@ export default function MenuPage() {
                 </div>
 
                 {/* Product Info */}
-                <div className="p-5">
+                <div className="flex flex-1 flex-col p-5">
                   <div className="mb-3 flex items-start justify-between">
-                    <h3 className="text-lg font-bold text-gray-900">
+                    <h3 className="text-lg font-bold text-card-foreground">
                       {product.name}
                     </h3>
-                    <span className="ml-3 text-xl font-bold whitespace-nowrap text-gray-900">
+                    <span className="ml-3 text-xl font-bold whitespace-nowrap text-primary">
                       ₱{product.price.toFixed(2)}
                     </span>
                   </div>
 
                   {product.description && (
-                    <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-gray-600">
+                    <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                       {product.description}
                     </p>
                   )}
 
                   {/* Category Tag */}
-                  <div className="flex items-center justify-between">
-                    <span className="inline-block rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="inline-block rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
                       {product.category}
                     </span>
                   </div>
 
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={() => handleAddToCart(product)}
-                    disabled={!product.available}
-                    className={`mt-4 w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
-                      product.available
-                        ? "bg-black text-white hover:bg-gray-800"
-                        : "cursor-not-allowed bg-gray-300 text-gray-500"
-                    }`}
-                  >
-                    {product.available ? "Add to Cart" : "Out of Stock"}
-                  </button>
+                  {/* Spacer to push footer to bottom */}
+                  <div className="flex-1"></div>
+
+                  {/* Card Footer - Add to Cart Button */}
+                  <div className="border-t border-border pt-4 mt-auto">
+                    <button
+                      onClick={() => handleAddToCart(product)}
+                      disabled={!product.available}
+                      className={`w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
+                        product.available
+                          ? "bg-primary text-primary-foreground hover:bg-primary-hover"
+                          : "cursor-not-allowed bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {product.available ? "Add to Cart" : "Out of Stock"}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
