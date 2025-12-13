@@ -1,64 +1,29 @@
-"use client";
+// app/page.tsx - Server Component with ISR
+import { unstable_cache } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import HomeClient from "./HomeClient";
 
-import { useCart } from "@/context/CartContext";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import HeroSection from "@/components/home/HeroSection";
-import FeaturedProducts from "@/components/home/FeaturedProducts";
-import AboutSection from "@/components/home/AboutSection";
-import LocationSection from "@/components/home/LocationSection";
+// Cache for 1 hour (same as menu page)
+export const revalidate = 3600;
 
-interface Product {
-  id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  category: string;
-  imageUrl: string | null;
-  available: boolean;
-}
+// Cached function for fetching featured products
+const getCachedFeaturedProducts = unstable_cache(
+  async () => {
+    return await prisma.product.findMany({
+      where: { available: true },
+      take: 3, // First 3 products as featured
+      orderBy: { createdAt: "desc" }, // Most recent first
+    });
+  },
+  ["featured-products"], // Cache key
+  {
+    revalidate: 3600, // Revalidate every 1 hour
+    tags: ["products"], // Same tag as menu - invalidates together
+  }
+);
 
-export default function HomePage() {
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { addToCart } = useCart();
-  const router = useRouter();
+export default async function HomePage() {
+  const featuredProducts = await getCachedFeaturedProducts();
 
-  useEffect(() => {
-    async function fetchFeaturedProducts() {
-      try {
-        const response = await fetch("/api/products");
-        if (response.ok) {
-          const data = await response.json();
-          // Get first 3 products as featured
-          setFeaturedProducts(data.products.slice(0, 3));
-        }
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchFeaturedProducts();
-  }, []);
-
-  const handleAddToCart = (product: Product) => {
-    addToCart(product, 1);
-    // Navigate to cart to show the item was added
-    router.push("/cart");
-  };
-
-  return (
-    <div className="flex flex-col">
-      <HeroSection />
-      <FeaturedProducts
-        products={featuredProducts}
-        loading={loading}
-        onAddToCart={handleAddToCart}
-      />
-      <AboutSection />
-      <LocationSection />
-    </div>
-  );
+  return <HomeClient featuredProducts={featuredProducts} />;
 }

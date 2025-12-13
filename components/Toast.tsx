@@ -118,20 +118,20 @@ function ToastItem({
 
   return (
     <div
-      className={`pointer-events-auto flex items-center gap-3 rounded-lg ${bgColor} px-4 py-3 text-white shadow-lg transition-all duration-300 ${
+      className={`pointer-events-auto flex items-center gap-3 rounded-lg ${bgColor} px-4 py-3 text-white shadow-lg transition-all duration-300 min-w-[300px] max-w-md ${
         isExiting
           ? "translate-x-[400px] opacity-0"
           : "translate-x-0 opacity-100"
       }`}
     >
       <div className="flex-shrink-0">{icon}</div>
-      <p className="text-sm font-medium">{message}</p>
+      <p className="text-sm font-medium flex-1">{message}</p>
       <button
         onClick={() => {
           setIsExiting(true);
           setTimeout(() => onRemove(id), 300);
         }}
-        className="ml-2 flex-shrink-0 rounded-full p-1 hover:bg-white/20 transition-colors"
+        className="flex-shrink-0 rounded-full p-1 hover:bg-white/20 transition-colors"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

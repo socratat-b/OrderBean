@@ -54,7 +54,7 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
       : initialProducts.filter((p) => p.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-background px-4 py-12 md:px-8">
+    <div className="min-h-dvh bg-background px-4 py-12 md:px-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-10 text-center">

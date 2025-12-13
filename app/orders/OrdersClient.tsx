@@ -76,7 +76,7 @@ export default function OrdersClient({ orders }: OrdersClientProps) {
 
   if (orders.length === 0) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-4">
         <div className="text-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -110,7 +110,7 @@ export default function OrdersClient({ orders }: OrdersClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background px-4 py-12">
+    <div className="min-h-dvh bg-background px-4 py-12">
       <div className="mx-auto max-w-4xl">
         <h1 className="text-3xl font-bold text-foreground">My Orders</h1>
         <p className="mt-2 text-sm text-muted-foreground">
