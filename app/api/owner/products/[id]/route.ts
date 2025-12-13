@@ -1,6 +1,7 @@
 // app/api/owner/products/[id]/route.ts
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/dal";
+import { revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 interface UpdateProductBody {
@@ -59,6 +60,9 @@ export async function PATCH(
       data: body,
     });
 
+    // Invalidate products cache for ISR
+    revalidateTag("products");
+
     return NextResponse.json({
       success: true,
       message: "Product updated successfully",
@@ -108,6 +112,9 @@ export async function DELETE(
     await prisma.product.delete({
       where: { id },
     });
+
+    // Invalidate products cache for ISR
+    revalidateTag("products");
 
     return NextResponse.json({
       success: true,

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-OrderBean is a Next.js coffee shop ordering system with role-based access control (Customer, Staff, Owner). Built with Next.js 16 App Router, React 19, PostgreSQL, Prisma ORM, and JWT authentication.
+OrderBean is a Next.js coffee shop ordering system with role-based access control (Customer, Staff, Owner). Built with Next.js 16 App Router, React 19, PostgreSQL, Prisma ORM, and Next.js Server Actions with httpOnly cookies authentication.
 
 ## Commands
 
@@ -31,7 +31,7 @@ npm run seed:owner            # Create test owner user
 ### Tech Stack
 - **Framework**: Next.js 16 (App Router) + React 19
 - **Database**: PostgreSQL with Prisma ORM v7.1.0
-- **Authentication**: JWT tokens (7-day expiration) stored in localStorage
+- **Authentication**: Next.js Server Actions with jose JWT library, httpOnly cookies (7-day expiration)
 - **Styling**: Tailwind CSS 4 with PostCSS
 - **Password Hashing**: bcryptjs
 
@@ -45,15 +45,22 @@ The singleton instance is at `lib/prisma.ts`.
 
 ### Authentication Flow
 
-1. Users register/login via `/api/auth/register` and `/api/auth/login`
-2. JWT tokens are generated and stored in localStorage on client
-3. Client includes token in `Authorization: Bearer {token}` header
-4. `proxy.ts` middleware verifies tokens and adds headers to request:
-   - `x-user-id`: User ID
-   - `x-user-email`: User email
-   - `x-user-role`: CUSTOMER | STAFF | OWNER
+1. Users register/login via Server Actions in `actions/auth.ts`:
+   - `signup(state, formData)` - Creates user and session
+   - `login(state, formData)` - Authenticates user and creates session
+   - `logout()` - Deletes session and redirects to login
+2. JWT tokens are generated using jose library (`lib/session.ts`) and stored in httpOnly cookies
+3. `proxy.ts` middleware (Next.js middleware) verifies sessions from cookies and handles:
+   - Redirecting unauthenticated users from protected routes to `/login`
+   - Redirecting authenticated users from auth routes to `/menu`
+   - Clearing invalid session cookies
+4. Protected API routes and pages use Data Access Layer (`lib/dal.ts`):
+   - `verifySession()` - Verify session and redirect if invalid
+   - `getSession()` - Get session without redirecting (for API routes)
+   - `getUser()` - Fetch full user object with redirect
+   - `getCurrentUser()` - Fetch user without redirect (for optional auth)
 
-**AuthContext** (`context/AuthContext.tsx`) manages client-side auth state. Use `useAuth()` hook to access user, token, login/register/logout functions.
+**No client-side auth context** - Server components fetch user via `getCurrentUser()` and pass as props to client components (e.g., Header).
 
 ### User Roles & Permissions
 
@@ -100,18 +107,19 @@ Three-tier role system:
 ### State Management
 
 **Client-side:**
-- **AuthContext**: User, token, loading state, auth functions
-- **CartContext**: Cart items array, add/remove/update/clear functions, total, itemCount
-- Both wrap the app in root layout and provide hooks
+- **CartContext** (`context/CartContext.tsx`): Cart items array, add/remove/update/clear functions, total, itemCount
+- **ThemeContext** (`context/ThemeContext.tsx`): Dark/light theme management
+- **ToastContext** (`context/ToastContext.tsx`): Toast notifications
 
 **localStorage:**
-- `token`: JWT authentication token
-- `user`: User object (id, email, name, role)
-- `cart`: Cart items array
+- `cart`: Cart items array (only cart data, no auth tokens)
+- `theme`: User's theme preference (light/dark)
 
 **Server-side:**
-- No in-memory state or session store
+- Session data stored in httpOnly cookies (managed by `lib/session.ts`)
+- User authentication state fetched from database on each request
 - All data managed through PostgreSQL via Prisma queries
+- Data Access Layer (`lib/dal.ts`) provides cached session/user retrieval
 
 ### Route Organization
 
@@ -125,14 +133,23 @@ Three-tier role system:
 - `/cart` - Shopping cart and checkout
 - `/orders` - Customer order history
 
+**Server Actions:**
+
+*Auth Actions (`actions/auth.ts`):*
+- `signup(state, formData)` - User registration
+- `login(state, formData)` - User login
+- `logout()` - User logout
+
+*Order Actions (`actions/orders.ts`):*
+- Order-related server actions
+
 **API Routes:**
 
 *Public:*
 - `GET /api/products` - Fetch available products
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
+- `GET /api/products/[id]` - Get single product
 
-*Protected (all require JWT):*
+*Protected (all require session cookie):*
 - `GET /api/orders` - Get user's orders
 - `POST /api/orders` - Create new order from cart
 - `GET /api/staff/orders` - View all orders (Staff/Owner only)
@@ -144,16 +161,31 @@ Three-tier role system:
 
 ### Middleware Pattern
 
-`proxy.ts` intercepts protected API routes:
-1. Extracts JWT from `Authorization` header
-2. Verifies token using `lib/jwt.ts`
-3. Adds user info headers to request
-4. Returns 401 if token missing/invalid
+`proxy.ts` (Next.js middleware) handles route protection:
+1. Checks if route is protected (`/cart`, `/orders`, `/staff`, `/owner`) or auth route (`/login`, `/register`)
+2. Reads and decrypts session cookie using `decrypt()` from `lib/session.ts`
+3. If cookie exists but session is invalid, clears the cookie
+4. Redirects unauthenticated users from protected routes to `/login`
+5. Redirects authenticated users from auth routes to `/menu`
+6. Redirects authenticated users from `/` to `/menu`
 
-API routes access user info via:
+API routes and Server Components access session via Data Access Layer:
 ```typescript
-const userId = request.headers.get('x-user-id')
-const userRole = request.headers.get('x-user-role')
+import { getSession, verifySession, getCurrentUser } from '@/lib/dal'
+
+// In API routes (returns null if no session)
+const session = await getSession()
+if (!session) {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+}
+const userId = session.userId
+const userRole = session.role
+
+// In Server Components (redirects to /login if no session)
+const session = await verifySession()
+
+// Get full user object (optional auth check, no redirect)
+const user = await getCurrentUser()
 ```
 
 ### Cart Implementation
@@ -172,24 +204,33 @@ Cart is **client-side only** (not stored in database):
 - `Footer.tsx`: Site footer
 
 **Key Patterns:**
-- Use `suppressHydrationWarning` for client-side auth checks to prevent hydration errors
-- Check for browser environment before accessing localStorage
-- Protected pages redirect to `/login` if not authenticated
+- Use `suppressHydrationWarning` for theme-dependent rendering to prevent hydration errors
+- Server components fetch user data and pass to client components as props
+- Check for browser environment before accessing localStorage (cart, theme)
+- Protected pages use `verifySession()` server-side or middleware handles redirects
 
 ### Environment Variables
 
 Required in `.env`:
 ```
 DATABASE_URL="postgresql://..."
-JWT_SECRET="your-secret-key"
+SESSION_SECRET="your-secret-key-min-32-chars"
 ```
 
 ### Common Tasks
 
 **Adding a new API endpoint:**
 1. Create route handler in `app/api/[route]/route.ts`
-2. If protected, access user via headers: `request.headers.get('x-user-id')`
-3. Check role if needed: `if (userRole !== 'OWNER') return 403`
+2. If protected, get session using DAL:
+```typescript
+import { getSession } from '@/lib/dal'
+
+const session = await getSession()
+if (!session) {
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+}
+```
+3. Check role if needed: `if (session.role !== 'OWNER') return NextResponse.json({ error: "Forbidden" }, { status: 403 })`
 4. Use Prisma client from `lib/prisma.ts`
 
 **Modifying database schema:**
@@ -199,18 +240,18 @@ JWT_SECRET="your-secret-key"
 4. Restart dev server
 
 **Adding a protected page:**
-1. Create page component
-2. Use `useAuth()` hook to check authentication
-3. Redirect to `/login` if not authenticated:
+1. Create page component as Server Component
+2. Use `verifySession()` to verify authentication (auto-redirects to `/login` if not authenticated):
 ```typescript
-const { user, loading } = useAuth()
+import { verifySession } from '@/lib/dal'
 
-useEffect(() => {
-  if (!loading && !user) {
-    router.push('/login')
-  }
-}, [user, loading, router])
+export default async function ProtectedPage() {
+  const session = await verifySession() // Redirects to /login if no session
+
+  // Page content here
+}
 ```
+3. Alternatively, let middleware handle redirects by adding route to `protectedRoutes` array in `proxy.ts`
 
 **Testing different roles:**
 Use seed scripts to create test users:
@@ -220,8 +261,7 @@ Use seed scripts to create test users:
 
 ### Known Limitations
 
-- JWT stored in localStorage (vulnerable to XSS; consider httpOnly cookies for production)
-- No refresh token mechanism (7-day token expiration)
+- No refresh token mechanism (7-day session expiration, auto-renewed on each request via middleware)
 - Cart is client-side only (not synced across devices)
 - No pagination (all products/orders loaded at once)
 - No API rate limiting
@@ -233,13 +273,14 @@ Use seed scripts to create test users:
 
 ✅ Database setup (PostgreSQL + Prisma)
 ✅ Schema design (User, Product, Order, OrderItem models)
-✅ Register API (/api/auth/register)
-✅ Login API (/api/auth/login)
-✅ JWT token generation & verification
-✅ proxy.ts middleware for protected routes
-✅ Test protected routes with CURL
+✅ Server Actions for auth (signup, login, logout in `actions/auth.ts`)
+✅ Session management with httpOnly cookies (`lib/session.ts`)
+✅ Data Access Layer for session verification (`lib/dal.ts`)
+✅ Middleware for route protection (`proxy.ts`)
+✅ Password hashing with bcryptjs
+✅ Form validation with Zod
 
-**Result**: Users can register, login, and get JWT tokens. Protected routes verified.
+**Result**: Users can register, login, and logout securely via Server Actions. Protected routes verified.
 
 ### ✅ PHASE 2: PRODUCTS & ORDERS - COMPLETED
 
@@ -252,8 +293,8 @@ Use seed scripts to create test users:
 
 **B. Orders (Protected - Customer)**
 
-✅ POST /api/orders - Create order (requires JWT)
-✅ GET /api/orders - Get user's orders (requires JWT)
+✅ POST /api/orders - Create order (requires session)
+✅ GET /api/orders - Get user's orders (requires session)
 ✅ Test complete flow: login → get products → place order
 
 **Goal**: Customers can browse menu and place orders via API.
@@ -264,7 +305,7 @@ Use seed scripts to create test users:
 
 ✅ GET /api/staff/orders - View all pending orders
 ✅ PATCH /api/staff/orders/[id] - Update order status
-✅ Role-based access control in proxy.ts
+✅ Role-based access control in API routes and middleware
 ✅ Staff user seed script
 
 **B. Owner Analytics (Protected - OWNER role)**
@@ -283,22 +324,22 @@ Use seed scripts to create test users:
 
 **A. Authentication Pages**
 
-✅ /login page with form
-✅ /register page with form
+✅ /login page with form using Server Actions
+✅ /register page with form using Server Actions
 ✅ (auth) route group organization
-✅ AuthContext for global state management
-✅ localStorage token management
-✅ Error handling & validation
+✅ Server-side session management with httpOnly cookies
+✅ Error handling & validation with Zod
+✅ Form state management with useActionState hook
 
 **B. Navigation & Layout**
 
-✅ Header with login/logout
+✅ Header with login/logout (user passed as prop from Server Component)
 ✅ Mobile sidebar with auth
-✅ User context/state management
-✅ Protected route handling
+✅ Server-side user fetching via `getCurrentUser()`
+✅ Protected route handling via middleware
 ✅ Conditional navigation (logged in/out)
 
-**Goal**: Users can register and login via beautiful UI.
+**Goal**: Users can register and login via beautiful UI with secure Server Actions.
 
 ### ✅ PHASE 4B: MENU PAGE - COMPLETED
 
@@ -325,7 +366,7 @@ Use seed scripts to create test users:
 ✅ Remove items from cart
 ✅ Clear cart functionality
 ✅ Checkout flow with auth check
-✅ Place order (API call with JWT)
+✅ Place order (API call with session cookie)
 
 **C. Order History**
 
