@@ -1,6 +1,7 @@
 // app/api/orders/route.ts
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/dal";
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 // Define proper types
@@ -127,6 +128,9 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Invalidate the user's orders cache for ISR
+    revalidatePath("/orders");
 
     return NextResponse.json(
       {

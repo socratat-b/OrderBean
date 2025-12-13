@@ -1,6 +1,7 @@
 // app/api/staff/orders/[id]/route.ts
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/dal";
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 interface UpdateOrderBody {
@@ -79,6 +80,9 @@ export async function PATCH(
         },
       },
     });
+
+    // Invalidate the user's orders cache for ISR
+    revalidatePath("/orders");
 
     return NextResponse.json({
       success: true,

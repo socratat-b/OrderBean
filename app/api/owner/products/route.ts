@@ -1,7 +1,7 @@
 // app/api/owner/products/route.ts
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/dal";
-import { revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 interface CreateProductBody {
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Invalidate products cache for ISR
-    revalidateTag("products");
+    revalidatePath("/menu");
 
     return NextResponse.json(
       {
