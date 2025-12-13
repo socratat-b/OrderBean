@@ -36,7 +36,8 @@ export const getUser = cache(async () => {
 
     return user;
   } catch (error) {
-    console.log("Failed to fetch user");
+    // TODO: Use proper logging service in production (e.g., Sentry, Winston, Pino)
+    console.error("Failed to fetch user:", error instanceof Error ? error.message : "Unknown error");
     return null;
   }
 });
@@ -65,7 +66,20 @@ export const getCurrentUser = cache(async () => {
 
     return user;
   } catch (error) {
-    console.log("Failed to fetch user");
+    // TODO: Use proper logging service in production (e.g., Sentry, Winston, Pino)
+    console.error("Failed to fetch current user:", error instanceof Error ? error.message : "Unknown error");
     return null;
   }
+});
+
+// Get session without redirecting (for API routes)
+export const getSession = cache(async () => {
+  const cookie = (await cookies()).get("session")?.value;
+  const session = await decrypt(cookie);
+
+  if (!session?.userId) {
+    return null;
+  }
+
+  return { isAuth: true, userId: session.userId, role: session.role };
 });

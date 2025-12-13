@@ -1,5 +1,6 @@
 // app/api/owner/products/route.ts
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/dal";
 import { NextRequest, NextResponse } from "next/server";
 
 interface CreateProductBody {
@@ -14,11 +15,15 @@ interface CreateProductBody {
 // GET /api/owner/products - List all products (OWNER only)
 export async function GET(request: NextRequest) {
   try {
-    // Get user info from headers (set by proxy.ts)
-    const userRole = request.headers.get("x-user-role");
+    // Verify session using DAL
+    const session = await getSession();
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Check if user is OWNER
-    if (userRole !== "OWNER") {
+    if (session.role !== "OWNER") {
       return NextResponse.json(
         { error: "Forbidden - Owner access required" },
         { status: 403 },
@@ -48,11 +53,15 @@ export async function GET(request: NextRequest) {
 // POST /api/owner/products - Create new product (OWNER only)
 export async function POST(request: NextRequest) {
   try {
-    // Get user info from headers (set by proxy.ts)
-    const userRole = request.headers.get("x-user-role");
+    // Verify session using DAL
+    const session = await getSession();
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Check if user is OWNER
-    if (userRole !== "OWNER") {
+    if (session.role !== "OWNER") {
       return NextResponse.json(
         { error: "Forbidden - Owner access required" },
         { status: 403 },

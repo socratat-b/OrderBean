@@ -104,7 +104,14 @@ export default function RegisterPage() {
                     placeholder="••••••••"
                   />
                   {state?.errors?.password && (
-                    <p className="mt-2 text-sm text-red-600">{state.errors.password}</p>
+                    <div className="mt-2 text-sm text-red-600">
+                      <p>Password must:</p>
+                      <ul className="list-disc list-inside">
+                        {state.errors.password.map((error) => (
+                          <li key={error}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               </div>

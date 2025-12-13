@@ -4,7 +4,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import "server-only";
 
-const secretKey = process.env.JWT_SECRET;
+const secretKey = process.env.SESSION_SECRET;
 const encodedKey = new TextEncoder().encode(secretKey);
 
 export async function encrypt(payload: SessionPayload) {
@@ -16,13 +16,25 @@ export async function encrypt(payload: SessionPayload) {
 }
 
 export async function decrypt(session: string | undefined = "") {
+  if (!session) {
+    return null;
+  }
+
   try {
     const { payload } = await jwtVerify(session, encodedKey, {
       algorithms: ["HS256"],
     });
     return payload as SessionPayload;
   } catch (error) {
-    console.log("Failed to verify session");
+    // Invalid or expired session - this is expected behavior
+    // Only log unexpected errors (not "Invalid Compact JWS" which means old/corrupted cookie)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+    // Don't log common expected errors to avoid console spam
+    if (!errorMessage.includes("Invalid Compact JWS") && !errorMessage.includes("expired")) {
+      console.error("Unexpected session verification error:", errorMessage);
+    }
+
     return null;
   }
 }
@@ -37,7 +49,7 @@ export async function createSession(
 
   cookieStore.set("session", session, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     expires: expiresAt,
     sameSite: "lax",
     path: "/",
@@ -62,7 +74,7 @@ export async function updateSession() {
 
   cookieStore.set("session", session, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     expires: expires,
     sameSite: "lax",
     path: "/",

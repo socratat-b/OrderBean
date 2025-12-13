@@ -1,5 +1,6 @@
 // app/api/orders/route.ts
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/dal";
 import { NextRequest, NextResponse } from "next/server";
 
 // Define proper types
@@ -15,12 +16,14 @@ interface CreateOrderBody {
 // GET /api/orders - Get user's orders (Protected)
 export async function GET(request: NextRequest) {
   try {
-    // Get user info from headers (set by proxy.ts)
-    const userId = request.headers.get("x-user-id");
+    // Verify session using DAL
+    const session = await getSession();
 
-    if (!userId) {
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userId = session.userId;
 
     const orders = await prisma.order.findMany({
       where: { userId },
@@ -53,12 +56,14 @@ export async function GET(request: NextRequest) {
 // POST /api/orders - Create new order (Protected)
 export async function POST(request: NextRequest) {
   try {
-    // Get user info from headers (set by proxy.ts)
-    const userId = request.headers.get("x-user-id");
+    // Verify session using DAL
+    const session = await getSession();
 
-    if (!userId) {
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const userId = session.userId;
 
     const body: CreateOrderBody = await request.json();
     const { items } = body;

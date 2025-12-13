@@ -1,5 +1,6 @@
 // app/api/owner/products/[id]/route.ts
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/dal";
 import { NextRequest, NextResponse } from "next/server";
 
 interface UpdateProductBody {
@@ -19,11 +20,15 @@ export async function PATCH(
   try {
     const { id } = await params;
 
-    // Get user info from headers (set by proxy.ts)
-    const userRole = request.headers.get("x-user-role");
+    // Verify session using DAL
+    const session = await getSession();
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Check if user is OWNER
-    if (userRole !== "OWNER") {
+    if (session.role !== "OWNER") {
       return NextResponse.json(
         { error: "Forbidden - Owner access required" },
         { status: 403 },
@@ -76,11 +81,15 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Get user info from headers (set by proxy.ts)
-    const userRole = request.headers.get("x-user-role");
+    // Verify session using DAL
+    const session = await getSession();
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Check if user is OWNER
-    if (userRole !== "OWNER") {
+    if (session.role !== "OWNER") {
       return NextResponse.json(
         { error: "Forbidden - Owner access required" },
         { status: 403 },
