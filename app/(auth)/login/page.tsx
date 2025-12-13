@@ -32,9 +32,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen relative">
-      {/* Background Image - Visible on all screen sizes */}
-      <div className="absolute inset-0">
+    <div className="flex min-h-screen">
+      {/* Mobile Background Image with overlay */}
+      <div className="absolute inset-0 lg:hidden">
         <Image
           src="https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=2070&auto=format&fit=crop"
           alt="Beautiful latte art"
@@ -42,12 +42,11 @@ export default function LoginPage() {
           className="object-cover"
           priority
         />
-        {/* Light mode: white overlay with transparency, Dark mode: darker overlay for readability */}
-        <div className="absolute inset-0 bg-white/90 dark:bg-black/85 lg:bg-transparent" />
+        <div className="absolute inset-0 bg-white/90 dark:bg-black/85" />
       </div>
 
       {/* Left Side - Form */}
-      <div className="flex w-full flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:w-1/2 lg:px-20 xl:px-24 lg:bg-background relative z-10">
+      <div className="flex w-full flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:w-1/2 lg:px-20 xl:px-24 bg-background relative z-10">
         <div className="mx-auto w-full max-w-sm lg:w-96">
           <div>
             <h2 className="text-3xl font-bold tracking-tight text-white lg:text-foreground">
@@ -132,9 +131,15 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right Side - Coffee Image (Desktop Only) */}
-      <div className="hidden lg:block lg:w-1/2 relative overflow-hidden z-10">
-        <div className="absolute inset-0 bg-black/10 dark:bg-black/30" />
+      {/* Right Side - Coffee Image (Desktop Only - NO OVERLAY) */}
+      <div className="hidden lg:block lg:w-1/2 relative">
+        <Image
+          src="https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=2070&auto=format&fit=crop"
+          alt="Beautiful latte art"
+          fill
+          className="object-cover object-center"
+          priority
+        />
       </div>
     </div>
   );
