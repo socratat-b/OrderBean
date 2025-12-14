@@ -56,14 +56,20 @@ export async function signup(state: FormState, formData: FormData): Promise<Form
 
     // 5. Create user session
     await createSession(user.id, user.role);
+
+    // 6. Redirect based on role
+    if (user.role === "STAFF") {
+      redirect("/staff");
+    } else if (user.role === "OWNER") {
+      redirect("/owner");
+    } else {
+      redirect("/menu");
+    }
   } catch (error) {
     return {
       message: "An error occurred while creating your account.",
     };
   }
-
-  // 6. Redirect user
-  redirect("/menu");
 }
 
 export async function login(state: FormState, formData: FormData): Promise<FormState> {
@@ -105,8 +111,14 @@ export async function login(state: FormState, formData: FormData): Promise<FormS
   // 4. Create user session
   await createSession(user.id, user.role);
 
-  // 5. Redirect user
-  redirect("/menu");
+  // 5. Redirect based on role
+  if (user.role === "STAFF") {
+    redirect("/staff");
+  } else if (user.role === "OWNER") {
+    redirect("/owner");
+  } else {
+    redirect("/menu");
+  }
 }
 
 export async function logout() {

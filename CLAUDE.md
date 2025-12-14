@@ -434,25 +434,35 @@ For **Vercel/Serverless deployments**, real-time updates are NOT reliable becaus
 - In-memory events don't propagate across instances
 - Events emitted in one instance won't reach SSE connections in other instances
 
-**TODO - Production Real-Time Solutions:**
-- [ ] **Option 1 (Recommended):** Add **Redis Pub/Sub** (Vercel KV or Upstash Redis)
-  - Replace `lib/events.ts` with Redis pub/sub
-  - All serverless instances share the same Redis channel
-  - True real-time updates across all instances
-  - ~$5/month (Upstash has free tier)
+**TODO - Fix Real-Time for Production (Currently has delay):**
 
-- [ ] **Option 2 (Simplest):** Replace SSE with **client-side polling**
-  - Remove SSE routes and hooks
-  - Add `setInterval(() => fetchOrders(), 5000)` to dashboards
-  - 5-10 second delay acceptable for coffee shop use case
-  - No external dependencies, works everywhere
+✅ **RECOMMENDED: SSE + Upstash Redis** (Keep SSE, add Redis for cross-instance events)
+- **Why:** Minimal code change, keeps current SSE architecture, no vendor lock-in
+- **Setup Steps:**
+  1. Sign up at [upstash.com](https://upstash.com) (free tier: 10k commands/day)
+  2. Create Redis database, copy `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
+  3. Install: `npm install @upstash/redis`
+  4. Replace `lib/events.ts` with Redis pub/sub implementation
+  5. Update order APIs to publish to Redis instead of in-memory
+  6. SSE routes subscribe to Redis channels
+- **Result:** True real-time across all Vercel instances, ~0ms delay
+- **Cost:** Free (10k commands/day plenty for coffee shop)
 
-- [ ] **Option 3 (Easiest):** Use **Pusher/Ably** managed service
-  - Third-party real-time service
-  - Free tier available
-  - Works out of the box in serverless
+**Alternative Options:**
+- [ ] **Pusher** (Replace SSE entirely with managed WebSocket service)
+  - Pros: Even simpler (5-min setup), no infrastructure to manage
+  - Cons: Vendor lock-in, need to replace all SSE code
+  - Free tier: 100 connections, 200k messages/day
+  - Setup: [pusher.com](https://pusher.com) → Install `pusher-js` → Replace SSE hooks
 
-**Current Status:** Deploy and test first, then upgrade to Redis or polling for production.
+- [ ] **Simple Polling** (Remove SSE, just refetch every 5 seconds)
+  - Pros: Zero dependencies, works everywhere, ultra-simple
+  - Cons: 5-10 second delay, more API requests
+  - Good enough for coffee shop use case if real-time isn't critical
+
+**Current Status:**
+- ✅ Deployed to production (works but has delay due to serverless limitation)
+- ⏳ Next: Implement SSE + Redis for instant updates (10-min task)
 
 ### ⏳ PHASE 8: ADVANCED FEATURES
 
@@ -486,6 +496,91 @@ For **Vercel/Serverless deployments**, real-time updates are NOT reliable becaus
 ⏳ Error monitoring (Sentry)
 
 **Goal**: Live production app!
+
+---
+
+## Staff-Specific Features (Future Enhancements)
+
+**Current Staff Capabilities:**
+- View all orders in real-time
+- Update order status (PENDING → PREPARING → READY → COMPLETED/CANCELLED)
+- Filter orders by status
+- See live updates indicator
+- Staff-only navigation (no menu/cart/orders access)
+
+**Potential Staff Features to Add:**
+
+### 📊 **Dashboard Enhancements**
+1. **Daily Summary Stats**
+   - Total orders today
+   - Revenue today
+   - Average order value
+   - Orders by hour chart
+
+2. **Order Search & Filters**
+   - Search by customer name/email
+   - Search by order ID
+   - Filter by date range (today, this week, custom)
+   - Filter by time (morning, afternoon, evening)
+
+### 🔔 **Notifications & Alerts**
+3. **Sound Notifications**
+   - Play sound when new order arrives
+   - Visual badge counter for pending orders
+   - Browser notifications (requestPermission)
+
+4. **Order Timer**
+   - Show "time since order placed" on each order card
+   - Highlight orders older than X minutes
+   - Auto-refresh order list
+
+### 📦 **Product Management (Quick Actions)**
+5. **Mark Product Out of Stock**
+   - Quick toggle to mark products unavailable
+   - Shows on menu as "Temporarily unavailable"
+   - Staff can re-enable when stock arrives
+
+6. **Popular Products Widget**
+   - Shows today's most ordered items
+   - Helps staff prepare popular items in advance
+
+### 👥 **Customer Management**
+7. **Customer Lookup**
+   - View customer's order history
+   - See frequent customers
+   - Customer notes (allergies, preferences)
+
+### 🖨️ **Order Management**
+8. **Print Order Ticket**
+   - Print kitchen ticket for each order
+   - Includes customer name, items, special requests
+   - Can reprint if needed
+
+9. **Order Notes/Comments**
+   - Staff can add internal notes to orders
+   - "Customer requested extra hot"
+   - "Ready for pickup at 3pm"
+
+### 📈 **Performance Tracking**
+10. **Personal Stats**
+    - Orders processed by logged-in staff member
+    - Average processing time
+    - Orders completed this shift
+
+### ⚙️ **Settings & Preferences**
+11. **Staff Preferences**
+    - Sound on/off for new orders
+    - Auto-refresh interval (5s, 10s, 30s)
+    - Default status filter
+
+**Priority Features (Next to Implement):**
+- [ ] Sound notification for new orders
+- [ ] Daily summary stats
+- [ ] Order search by customer name
+- [ ] Mark products out of stock (quick toggle)
+- [ ] Order timer (time since placed)
+
+---
 
 ### Current Status: 🎯
 

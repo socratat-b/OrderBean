@@ -40,9 +40,29 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/menu", req.nextUrl));
   }
 
-  // 6. Redirect home (/) to /menu if authenticated
+  // 6. Redirect home (/) based on user role
   if (path === "/" && session?.userId) {
-    return NextResponse.redirect(new URL("/menu", req.nextUrl));
+    if (session.role === "STAFF") {
+      return NextResponse.redirect(new URL("/staff", req.nextUrl));
+    } else if (session.role === "OWNER") {
+      return NextResponse.redirect(new URL("/owner", req.nextUrl));
+    } else {
+      return NextResponse.redirect(new URL("/menu", req.nextUrl));
+    }
+  }
+
+  // 7. Redirect staff/owner away from customer-only routes
+  const customerOnlyRoutes = ["/menu", "/cart", "/orders"];
+  const isCustomerOnlyRoute = customerOnlyRoutes.some((route) =>
+    path.startsWith(route)
+  );
+
+  if (isCustomerOnlyRoute && session?.userId) {
+    if (session.role === "STAFF") {
+      return NextResponse.redirect(new URL("/staff", req.nextUrl));
+    } else if (session.role === "OWNER") {
+      return NextResponse.redirect(new URL("/owner", req.nextUrl));
+    }
   }
 
   return NextResponse.next();
