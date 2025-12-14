@@ -412,14 +412,47 @@ Use seed scripts to create test users:
 
 **Goal**: Owners can monitor business and manage inventory.
 
-### ⏳ PHASE 7: REAL-TIME FEATURES
+### ✅ PHASE 7: REAL-TIME FEATURES - COMPLETED (SSE Implementation)
 
-⏳ WebSocket/Pusher/Supabase Realtime setup
-⏳ Real-time order updates for customers
-⏳ Real-time notifications for staff
-⏳ Live order status changes
+✅ Server-Sent Events (SSE) implementation
+✅ Event emitter system (`lib/events.ts`)
+✅ SSE route handlers (`/api/sse/orders/*`, `/api/sse/staff/orders`, `/api/sse/owner/orders`)
+✅ Real-time order updates for customers (auto-refresh on focus)
+✅ Real-time notifications for staff (live updates indicator)
+✅ Live order status changes for all roles
+✅ Custom React hooks (`useOrderSSE`, `useStaffOrdersSSE`, `useOwnerOrdersSSE`)
 
 **Goal**: Instant updates without page refresh.
+
+**⚠️ IMPORTANT - VERCEL DEPLOYMENT NOTE:**
+The current SSE implementation uses **in-memory events** which works perfectly for:
+- Development environments
+- Single-server deployments (Railway, Render, traditional VPS)
+
+For **Vercel/Serverless deployments**, real-time updates are NOT reliable because:
+- Each API route runs in a separate serverless instance
+- In-memory events don't propagate across instances
+- Events emitted in one instance won't reach SSE connections in other instances
+
+**TODO - Production Real-Time Solutions:**
+- [ ] **Option 1 (Recommended):** Add **Redis Pub/Sub** (Vercel KV or Upstash Redis)
+  - Replace `lib/events.ts` with Redis pub/sub
+  - All serverless instances share the same Redis channel
+  - True real-time updates across all instances
+  - ~$5/month (Upstash has free tier)
+
+- [ ] **Option 2 (Simplest):** Replace SSE with **client-side polling**
+  - Remove SSE routes and hooks
+  - Add `setInterval(() => fetchOrders(), 5000)` to dashboards
+  - 5-10 second delay acceptable for coffee shop use case
+  - No external dependencies, works everywhere
+
+- [ ] **Option 3 (Easiest):** Use **Pusher/Ably** managed service
+  - Third-party real-time service
+  - Free tier available
+  - Works out of the box in serverless
+
+**Current Status:** Deploy and test first, then upgrade to Redis or polling for production.
 
 ### ⏳ PHASE 8: ADVANCED FEATURES
 
@@ -456,12 +489,13 @@ Use seed scripts to create test users:
 
 ### Current Status: 🎯
 
-**✅ COMPLETED: 75%**
+**✅ COMPLETED: 85%**
 - Backend APIs (100%)
 - Auth UI (100%)
 - Menu Page (100%)
 - Cart & Checkout (100%)
 - Staff Dashboard UI (100%)
 - Owner Dashboard UI (100%)
+- Real-Time Features SSE (100% - needs Redis for Vercel production)
 
-**⏳ NEXT UP: Real-Time Features (Phase 7)**
+**⏳ NEXT UP: Advanced Features (Phase 8) or Deploy to Vercel**

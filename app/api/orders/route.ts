@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/dal";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
+import { orderEvents, ORDER_EVENTS } from "@/lib/events";
 
 // Define proper types
 interface OrderItemInput {
@@ -131,6 +132,14 @@ export async function POST(request: NextRequest) {
 
     // Invalidate the user's orders cache for ISR
     revalidatePath("/orders");
+
+    // Emit event for real-time updates
+    orderEvents.emit(ORDER_EVENTS.ORDER_CREATED, {
+      orderId: order.id,
+      userId: order.userId,
+      status: order.status,
+      timestamp: Date.now(),
+    });
 
     return NextResponse.json(
       {

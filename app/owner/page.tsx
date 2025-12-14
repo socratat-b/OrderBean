@@ -2,7 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useOwnerOrdersSSE } from "@/hooks/useOwnerOrdersSSE";
 
 interface OrdersByStatus {
   status: string;
@@ -56,6 +57,23 @@ export default function OwnerDashboard() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Real-time SSE callbacks
+  const handleOrderCreated = useCallback(() => {
+    // Refetch analytics when a new order is created
+    fetchAnalytics();
+  }, []);
+
+  const handleOrderUpdated = useCallback(() => {
+    // Refetch analytics when an order is updated
+    fetchAnalytics();
+  }, []);
+
+  // Subscribe to real-time order updates
+  const { isConnected, error: sseError } = useOwnerOrdersSSE(
+    handleOrderCreated,
+    handleOrderUpdated
+  );
 
   useEffect(() => {
     fetchAnalytics();
@@ -142,19 +160,30 @@ export default function OwnerDashboard() {
     <div className="min-h-screen bg-gray-50 px-4 py-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              Business analytics and insights
-            </p>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
+                <p className="mt-2 text-sm text-gray-600">
+                  Business analytics and insights
+                </p>
+              </div>
+              {/* Real-time connection indicator */}
+              <div className="flex items-center gap-2">
+                <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                <span className="text-xs text-gray-600">
+                  {isConnected ? 'Live updates' : 'Connecting...'}
+                </span>
+              </div>
+            </div>
+            <Link
+              href="/owner/products"
+              className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 transition-colors"
+            >
+              Manage Products
+            </Link>
           </div>
-          <Link
-            href="/owner/products"
-            className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 transition-colors"
-          >
-            Manage Products
-          </Link>
         </div>
 
         {/* Stats Cards */}

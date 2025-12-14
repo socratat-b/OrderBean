@@ -2,6 +2,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 interface OrderItem {
   id: string;
@@ -29,23 +30,15 @@ interface OrdersClientProps {
 export default function OrdersClient({ orders }: OrdersClientProps) {
   const router = useRouter();
 
-  // TODO: Add real-time listener when implementing Phase 7
-  // useEffect(() => {
-  //   // When you add Supabase/Pusher/WebSocket:
-  //   const subscription = supabase
-  //     .channel('orders')
-  //     .on('postgres_changes', {
-  //       event: 'UPDATE',
-  //       schema: 'public',
-  //       table: 'Order',
-  //       filter: `userId=eq.${userId}`
-  //     }, () => {
-  //       router.refresh() // Refetch server component data
-  //     })
-  //     .subscribe()
-  //
-  //   return () => subscription.unsubscribe()
-  // }, [router])
+  // Auto-refresh when window regains focus (simple real-time approach)
+  useEffect(() => {
+    const handleFocus = () => {
+      router.refresh(); // Refetch server component data
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [router]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

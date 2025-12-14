@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/dal";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
+import { orderEvents, ORDER_EVENTS } from "@/lib/events";
 
 interface UpdateOrderBody {
   status: "PENDING" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED";
@@ -83,6 +84,14 @@ export async function PATCH(
 
     // Invalidate the user's orders cache for ISR
     revalidatePath("/orders");
+
+    // Emit event for real-time updates
+    orderEvents.emit(ORDER_EVENTS.ORDER_STATUS_CHANGED, {
+      orderId: updatedOrder.id,
+      userId: updatedOrder.userId,
+      status: updatedOrder.status,
+      timestamp: Date.now(),
+    });
 
     return NextResponse.json({
       success: true,

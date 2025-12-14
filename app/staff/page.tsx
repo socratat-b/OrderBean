@@ -1,7 +1,8 @@
 // app/staff/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useStaffOrdersSSE } from "@/hooks/useStaffOrdersSSE";
 
 interface OrderItem {
   id: string;
@@ -36,6 +37,23 @@ export default function StaffDashboard() {
   const [error, setError] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus>("ALL");
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+
+  // Real-time SSE callbacks
+  const handleOrderCreated = useCallback(() => {
+    // Refetch orders when a new order is created
+    fetchOrders();
+  }, []);
+
+  const handleOrderUpdated = useCallback(() => {
+    // Refetch orders when an order is updated
+    fetchOrders();
+  }, []);
+
+  // Subscribe to real-time order updates
+  const { isConnected, error: sseError } = useStaffOrdersSSE(
+    handleOrderCreated,
+    handleOrderUpdated
+  );
 
   useEffect(() => {
     fetchOrders();
@@ -176,10 +194,21 @@ export default function StaffDashboard() {
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Staff Dashboard</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Manage customer orders • {orders.length} total orders
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Staff Dashboard</h1>
+              <p className="mt-2 text-sm text-gray-600">
+                Manage customer orders • {orders.length} total orders
+              </p>
+            </div>
+            {/* Real-time connection indicator */}
+            <div className="flex items-center gap-2">
+              <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+              <span className="text-xs text-gray-600">
+                {isConnected ? 'Live updates' : 'Connecting...'}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Status Filter Buttons */}
