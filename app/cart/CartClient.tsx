@@ -29,7 +29,7 @@ export default function CartClient({ user }: CartClientProps) {
   const handleCheckout = async () => {
     // Redirect to login if not authenticated
     if (!user) {
-      router.push("/login");
+      router.push("/login?redirect=/cart");
       return;
     }
 
@@ -264,7 +264,7 @@ export default function CartClient({ user }: CartClientProps) {
             <div className="mt-4 rounded-lg bg-warning/10 border border-warning/20 p-3">
               <p className="text-sm text-warning">
                 Please{" "}
-                <Link href="/login" className="font-semibold underline">
+                <Link href="/login?redirect=/cart" className="font-semibold underline">
                   login
                 </Link>{" "}
                 to place your order.

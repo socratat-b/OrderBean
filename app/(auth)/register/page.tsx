@@ -5,9 +5,12 @@ import { signup } from "@/actions/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function RegisterPage() {
   const [state, action, pending] = useActionState(signup, undefined);
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/menu";
 
   return (
     <div className="flex min-h-screen">
@@ -44,6 +47,9 @@ export default function RegisterPage() {
                   </p>
                 </div>
               )}
+
+              {/* Hidden redirect parameter */}
+              <input type="hidden" name="redirect" value={redirect} />
 
               <div className="space-y-5">
                 <div>
@@ -127,7 +133,7 @@ export default function RegisterPage() {
               <p className="text-center text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link
-                  href="/login"
+                  href={`/login${redirect !== "/menu" ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
                   className="font-semibold text-primary hover:text-primary-hover hover:underline transition-colors"
                 >
                   Sign in

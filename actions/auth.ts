@@ -57,13 +57,17 @@ export async function signup(state: FormState, formData: FormData): Promise<Form
     // 5. Create user session
     await createSession(user.id, user.role);
 
-    // 6. Redirect based on role
+    // 6. Get redirect parameter (if provided)
+    const redirectTo = formData.get("redirect") as string | null;
+
+    // 7. Redirect based on role (staff/owner) or redirect callback (customer)
     if (user.role === "STAFF") {
       redirect("/staff");
     } else if (user.role === "OWNER") {
       redirect("/owner");
     } else {
-      redirect("/menu");
+      // For customers, use redirect callback if provided, otherwise default to /menu
+      redirect(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/menu");
     }
   } catch (error) {
     return {
@@ -111,13 +115,17 @@ export async function login(state: FormState, formData: FormData): Promise<FormS
   // 4. Create user session
   await createSession(user.id, user.role);
 
-  // 5. Redirect based on role
+  // 5. Get redirect parameter (if provided)
+  const redirectTo = formData.get("redirect") as string | null;
+
+  // 6. Redirect based on role (staff/owner) or redirect callback (customer)
   if (user.role === "STAFF") {
     redirect("/staff");
   } else if (user.role === "OWNER") {
     redirect("/owner");
   } else {
-    redirect("/menu");
+    // For customers, use redirect callback if provided, otherwise default to /menu
+    redirect(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/menu");
   }
 }
 

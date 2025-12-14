@@ -21,18 +21,26 @@ export default async function proxy(req: NextRequest) {
 
   // 3.1. If cookie exists but session is invalid, clear the cookie
   if (cookie && !session?.userId) {
-    const response = isProtectedRoute
-      ? NextResponse.redirect(new URL("/login", req.nextUrl))
-      : NextResponse.next();
+    if (isProtectedRoute) {
+      // Add redirect callback URL
+      const loginUrl = new URL("/login", req.nextUrl);
+      loginUrl.searchParams.set("redirect", path);
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete("session");
+      return response;
+    }
 
-    // Delete the invalid session cookie
+    const response = NextResponse.next();
     response.cookies.delete("session");
     return response;
   }
 
   // 4. Redirect to /login if the user is not authenticated and trying to access protected route
   if (isProtectedRoute && !session?.userId) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl));
+    // Add redirect callback URL
+    const loginUrl = new URL("/login", req.nextUrl);
+    loginUrl.searchParams.set("redirect", path);
+    return NextResponse.redirect(loginUrl);
   }
 
   // 5. Redirect to /menu if the user is authenticated and trying to access auth routes
