@@ -4,10 +4,10 @@
 import { signup } from "@/actions/auth";
 import Image from "next/image";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [state, action, pending] = useActionState(signup, undefined);
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/menu";
@@ -155,5 +155,13 @@ export default function RegisterPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-background"><div className="text-muted-foreground">Loading...</div></div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }
