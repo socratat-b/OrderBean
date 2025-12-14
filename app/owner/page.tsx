@@ -54,8 +54,25 @@ interface Analytics {
 }
 
 export default function OwnerDashboard() {
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Check if we have cached data
+  const getCachedAnalytics = () => {
+    if (typeof window === 'undefined') return null;
+    const cached = sessionStorage.getItem('owner_analytics');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const cachedAnalytics = getCachedAnalytics();
+
+  const [analytics, setAnalytics] = useState<Analytics | null>(cachedAnalytics);
+  const [initialLoading, setInitialLoading] = useState(!cachedAnalytics);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   // Real-time SSE callbacks
@@ -76,13 +93,21 @@ export default function OwnerDashboard() {
   );
 
   useEffect(() => {
-    fetchAnalytics();
+    // Only show initial loading if we don't have cached data
+    fetchAnalytics(!cachedAnalytics);
   }, []);
 
-  async function fetchAnalytics() {
+  async function fetchAnalytics(isInitial = false) {
     try {
-      setLoading(true);
-      const response = await fetch("/api/owner/analytics");
+      if (isInitial) {
+        setInitialLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+
+      const response = await fetch("/api/owner/analytics", {
+        cache: "no-store",
+      });
 
       if (!response.ok) {
         if (response.status === 403) {
@@ -93,10 +118,18 @@ export default function OwnerDashboard() {
 
       const data = await response.json();
       setAnalytics(data.analytics);
+
+      // Cache the data in sessionStorage
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('owner_analytics', JSON.stringify(data.analytics));
+      }
+
+      setError(""); // Clear any previous errors
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
     }
   }
 
@@ -127,25 +160,25 @@ export default function OwnerDashboard() {
     });
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-black"></div>
-          <p className="mt-4 text-gray-600">Loading analytics...</p>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-border border-t-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading analytics...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error && !analytics) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <p className="text-red-600">Error: {error}</p>
+          <p className="text-error font-semibold">Error: {error}</p>
           <button
-            onClick={() => window.location.reload()}
-            className="mt-4 rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800"
+            onClick={() => fetchAnalytics(true)}
+            className="mt-4 rounded-xl bg-primary px-6 py-3 text-primary-foreground font-bold hover:opacity-90 transition-all shadow-md hover:shadow-lg"
           >
             Retry
           </button>
@@ -157,29 +190,67 @@ export default function OwnerDashboard() {
   if (!analytics) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8">
+    <div className="min-h-screen bg-background px-4 py-6 md:py-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
+        <div className="mb-6 md:mb-8">
+          {/* Mobile Header */}
+          <div className="flex flex-col gap-4 md:hidden">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-foreground">Owner Dashboard</h1>
+                {refreshing && (
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Business analytics and insights
+              </p>
+            </div>
+
+            {/* Real-time indicator - Mobile */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 rounded-lg bg-card border border-border px-3 py-2 shadow-sm">
+                <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`}></div>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {isConnected ? 'Live updates active' : 'Connecting...'}
+                </span>
+              </div>
+
+              <Link
+                href="/owner/products"
+                className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md active:scale-95"
+              >
+                Products
+              </Link>
+            </div>
+          </div>
+
+          {/* Desktop Header */}
+          <div className="hidden md:flex items-center justify-between">
+            <div className="flex items-center gap-6">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
-                <p className="mt-2 text-sm text-gray-600">
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-bold text-foreground">Owner Dashboard</h1>
+                  {refreshing && (
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+                  )}
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
                   Business analytics and insights
                 </p>
               </div>
-              {/* Real-time connection indicator */}
-              <div className="flex items-center gap-2">
-                <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                <span className="text-xs text-gray-600">
-                  {isConnected ? 'Live updates' : 'Connecting...'}
+              {/* Real-time connection indicator - Desktop */}
+              <div className="flex items-center gap-2 rounded-lg bg-card border border-border px-4 py-2 shadow-sm">
+                <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`}></div>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {isConnected ? 'Live updates active' : 'Connecting...'}
                 </span>
               </div>
             </div>
             <Link
               href="/owner/products"
-              className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 transition-colors"
+              className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md hover:shadow-lg"
             >
               Manage Products
             </Link>
@@ -187,17 +258,17 @@ export default function OwnerDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="mb-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 md:mb-8 grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
           {/* Total Orders */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                <p className="mt-2 text-3xl font-bold text-gray-900">
+          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex-1">
+                <p className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total Orders</p>
+                <p className="mt-1 md:mt-2 text-2xl md:text-3xl font-black text-card-foreground">
                   {analytics.totalOrders}
                 </p>
               </div>
-              <div className="rounded-full bg-blue-100 p-3">
+              <div className="hidden md:block rounded-full bg-blue-100 dark:bg-blue-900/30 p-3">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -217,15 +288,15 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Total Revenue */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="mt-2 text-3xl font-bold text-gray-900">
+          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex-1">
+                <p className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Revenue</p>
+                <p className="mt-1 md:mt-2 text-xl md:text-3xl font-black text-card-foreground">
                   ₱{analytics.totalRevenue.toFixed(2)}
                 </p>
               </div>
-              <div className="rounded-full bg-green-100 p-3">
+              <div className="hidden md:block rounded-full bg-green-100 dark:bg-green-900/30 p-3">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -245,18 +316,18 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Average Order Value */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
-                <p className="mt-2 text-3xl font-bold text-gray-900">
+          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex-1">
+                <p className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Avg Order</p>
+                <p className="mt-1 md:mt-2 text-xl md:text-3xl font-black text-card-foreground">
                   ₱
                   {analytics.totalOrders > 0
                     ? (analytics.totalRevenue / analytics.totalOrders).toFixed(2)
                     : "0.00"}
                 </p>
               </div>
-              <div className="rounded-full bg-purple-100 p-3">
+              <div className="hidden md:block rounded-full bg-purple-100 dark:bg-purple-900/30 p-3">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -276,18 +347,18 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Completed Orders */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="mt-2 text-3xl font-bold text-gray-900">
+          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex-1">
+                <p className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Completed</p>
+                <p className="mt-1 md:mt-2 text-2xl md:text-3xl font-black text-card-foreground">
                   {
                     analytics.ordersByStatus.find((s) => s.status === "COMPLETED")
                       ?.count || 0
                   }
                 </p>
               </div>
-              <div className="rounded-full bg-green-100 p-3">
+              <div className="hidden md:block rounded-full bg-green-100 dark:bg-green-900/30 p-3">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -308,41 +379,48 @@ export default function OwnerDashboard() {
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
           {/* Popular Products */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-bold text-gray-900">
-              Popular Products
-            </h2>
+          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base md:text-lg font-bold text-card-foreground">
+                Popular Products
+              </h2>
+              <div className="rounded-full bg-primary/10 px-3 py-1">
+                <span className="text-xs font-bold text-primary">
+                  {analytics.popularProducts.length}
+                </span>
+              </div>
+            </div>
             {analytics.popularProducts.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No orders yet</p>
+              <p className="text-center text-muted-foreground py-8">No orders yet</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {analytics.popularProducts.map((item, index) => (
                   <div
                     key={item.product.id}
-                    className="flex items-center gap-4 rounded-lg border border-gray-100 p-4 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-3 rounded-lg border border-border p-3 md:p-4 hover:bg-muted transition-colors"
                   >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 font-bold text-gray-700">
+                    <div className="flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary text-sm md:text-base">
                       {index + 1}
                     </div>
                     {item.product.imageUrl && (
                       <img
                         src={item.product.imageUrl}
                         alt={item.product.name}
-                        className="h-16 w-16 rounded-lg object-cover"
+                        className="h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-lg object-cover shadow-sm"
                       />
                     )}
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-card-foreground text-sm md:text-base truncate">
                         {item.product.name}
                       </p>
-                      <p className="text-sm text-gray-600">
-                        {item.totalQuantitySold} sold • {item.orderCount} orders
+                      <p className="text-xs md:text-sm text-muted-foreground">
+                        <span className="font-semibold text-primary">{item.totalQuantitySold}</span> sold • {item.orderCount} orders
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">
+                    <div className="text-right shrink-0">
+                      <p className="font-bold text-card-foreground text-sm md:text-base">
                         ₱{item.product.price.toFixed(2)}
                       </p>
                     </div>
@@ -353,10 +431,17 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Orders by Status */}
-          <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-lg font-bold text-gray-900">
-              Orders by Status
-            </h2>
+          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-base md:text-lg font-bold text-card-foreground">
+                Orders by Status
+              </h2>
+              <div className="rounded-full bg-primary/10 px-3 py-1">
+                <span className="text-xs font-bold text-primary">
+                  {analytics.totalOrders}
+                </span>
+              </div>
+            </div>
             <div className="space-y-3">
               {analytics.ordersByStatus.map((item) => {
                 const percentage =
@@ -374,13 +459,13 @@ export default function OwnerDashboard() {
                       >
                         {item.status}
                       </span>
-                      <span className="text-sm font-semibold text-gray-900">
+                      <span className="text-sm font-semibold text-card-foreground">
                         {item.count} ({percentage.toFixed(0)}%)
                       </span>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                       <div
-                        className="h-full bg-black transition-all"
+                        className="h-full bg-primary transition-all"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -392,61 +477,108 @@ export default function OwnerDashboard() {
         </div>
 
         {/* Recent Orders */}
-        <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-bold text-gray-900">Recent Orders</h2>
+        <div className="mt-4 md:mt-6 rounded-xl border border-border bg-card p-4 md:p-6 shadow-md">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base md:text-lg font-bold text-card-foreground">Recent Orders</h2>
+            <div className="rounded-full bg-primary/10 px-3 py-1">
+              <span className="text-xs font-bold text-primary">
+                {analytics.recentOrders.length}
+              </span>
+            </div>
+          </div>
           {analytics.recentOrders.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No recent orders</p>
+            <p className="text-center text-muted-foreground py-8">No recent orders</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left text-sm font-semibold text-gray-700">
-                    <th className="pb-3">Order ID</th>
-                    <th className="pb-3">Customer</th>
-                    <th className="pb-3">Items</th>
-                    <th className="pb-3">Total</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm">
-                  {analytics.recentOrders.map((order) => (
-                    <tr
-                      key={order.id}
-                      className="border-b border-gray-100 hover:bg-gray-50"
-                    >
-                      <td className="py-3 font-mono text-xs">
-                        {order.id.slice(0, 8).toUpperCase()}
-                      </td>
-                      <td className="py-3">
-                        <p className="font-medium text-gray-900">
+            <>
+              {/* Mobile: Card View */}
+              <div className="space-y-3 md:hidden">
+                {analytics.recentOrders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="rounded-lg border border-border p-3 hover:bg-muted transition-colors"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-mono text-xs text-muted-foreground">
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </p>
+                        <p className="mt-1 font-bold text-card-foreground text-sm">
                           {order.user.name}
                         </p>
-                        <p className="text-xs text-gray-600">{order.user.email}</p>
-                      </td>
-                      <td className="py-3 text-gray-600">
-                        {order.orderItems.length} item(s)
-                      </td>
-                      <td className="py-3 font-semibold text-gray-900">
+                      </div>
+                      <span
+                        className={`inline-block rounded-full border px-2 py-1 text-xs font-semibold ${getStatusColor(
+                          order.status,
+                        )}`}
+                      >
+                        {order.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{order.orderItems.length} item(s)</span>
+                      <span>{formatDate(order.createdAt)}</span>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-border">
+                      <p className="text-lg font-black text-primary">
                         ₱{order.total.toFixed(2)}
-                      </td>
-                      <td className="py-3">
-                        <span
-                          className={`inline-block rounded-full border px-2 py-1 text-xs font-semibold ${getStatusColor(
-                            order.status,
-                          )}`}
-                        >
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="py-3 text-gray-600">
-                        {formatDate(order.createdAt)}
-                      </td>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border text-left text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                      <th className="pb-3">Order ID</th>
+                      <th className="pb-3">Customer</th>
+                      <th className="pb-3">Items</th>
+                      <th className="pb-3">Total</th>
+                      <th className="pb-3">Status</th>
+                      <th className="pb-3">Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="text-sm">
+                    {analytics.recentOrders.map((order) => (
+                      <tr
+                        key={order.id}
+                        className="border-b border-border hover:bg-muted transition-colors"
+                      >
+                        <td className="py-3 font-mono text-xs text-muted-foreground">
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </td>
+                        <td className="py-3">
+                          <p className="font-semibold text-card-foreground">
+                            {order.user.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{order.user.email}</p>
+                        </td>
+                        <td className="py-3 text-muted-foreground">
+                          {order.orderItems.length} item(s)
+                        </td>
+                        <td className="py-3 font-bold text-card-foreground">
+                          ₱{order.total.toFixed(2)}
+                        </td>
+                        <td className="py-3">
+                          <span
+                            className={`inline-block rounded-full border px-2 py-1 text-xs font-semibold ${getStatusColor(
+                              order.status,
+                            )}`}
+                          >
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="py-3 text-muted-foreground text-xs">
+                          {formatDate(order.createdAt)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
