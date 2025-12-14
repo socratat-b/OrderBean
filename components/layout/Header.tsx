@@ -425,8 +425,8 @@ export default function Header({ user }: { user: User }) {
                 )}
               </button>
 
-              {/* Cart - Mobile - Only for customers */}
-              {mounted && user && user.role === "CUSTOMER" && (
+              {/* Cart - Mobile - Show for guests and customers */}
+              {mounted && (!user || user.role === "CUSTOMER") && (
                 <Link
                   href="/cart"
                   className="relative transition-opacity hover:opacity-70 text-foreground"

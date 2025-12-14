@@ -32,6 +32,7 @@ npm run seed:owner            # Create test owner user
 - **Framework**: Next.js 16 (App Router) + React 19
 - **Database**: PostgreSQL with Prisma ORM v7.1.0
 - **Authentication**: Next.js Server Actions with jose JWT library, httpOnly cookies (7-day expiration)
+- **Payment Gateway**: PayMongo (GCash, PayMaya, Credit/Debit cards)
 - **Styling**: Tailwind CSS 4 with PostCSS
 - **Password Hashing**: bcryptjs
 
@@ -152,12 +153,18 @@ Three-tier role system:
 *Protected (all require session cookie):*
 - `GET /api/orders` - Get user's orders
 - `POST /api/orders` - Create new order from cart
+- `POST /api/payment/create` - Create PayMongo payment source (GCash checkout)
+- `POST /api/webhooks/paymongo` - Handle PayMongo webhook events
 - `GET /api/staff/orders` - View all orders (Staff/Owner only)
 - `PATCH /api/staff/orders/[id]` - Update order status (Staff/Owner only)
 - `GET /api/owner/analytics` - Business analytics (Owner only)
 - `GET /api/owner/products` - List all products (Owner only)
 - `POST /api/owner/products` - Create product (Owner only)
 - `GET/PATCH /api/owner/products/[id]` - Manage product (Owner only)
+
+*Payment Pages:*
+- `/payment/success` - Payment success handler (creates order)
+- `/payment/failed` - Payment failure handler
 
 ### Middleware Pattern
 
@@ -194,7 +201,54 @@ Cart is **client-side only** (not stored in database):
 - Managed by CartContext
 - Persisted in localStorage
 - Allows anonymous browsing
-- Converted to Order on checkout via `POST /api/orders`
+- Converted to Order on checkout via PayMongo payment flow
+
+### Payment Integration (PayMongo)
+
+**Payment Flow:**
+1. User adds items to cart
+2. Clicks "Pay with GCash" button
+3. `POST /api/payment/create` creates PayMongo payment source
+4. User redirected to PayMongo GCash checkout page
+5. User completes payment on GCash
+6. PayMongo redirects to success/failure page
+7. `/payment/success` creates order in database
+8. Webhook (`/api/webhooks/paymongo`) receives payment confirmation (backup)
+
+**Key Files:**
+- `lib/paymongo.ts` - PayMongo API client and utilities
+- `app/api/payment/create/route.ts` - Create payment source endpoint
+- `app/api/webhooks/paymongo/route.ts` - Webhook handler
+- `app/payment/success/page.tsx` - Success page (creates order)
+- `app/payment/failed/page.tsx` - Failure page
+- `app/cart/CartClient.tsx` - Cart with "Pay with GCash" button
+- `components/DemoModeBanner.tsx` - Demo mode warning banner
+
+**Test vs Live Mode:**
+- **TEST mode** (`sk_test_...`): Shows PayMongo test page, no real charges, demo banner visible
+- **LIVE mode** (`sk_live_...`): Real GCash payments, requires PayMongo business verification
+
+**PayMongo Functions:**
+```typescript
+import {
+  createPaymentSource,    // Create GCash/Maya payment
+  getPaymentSource,        // Check payment status
+  toAtomicAmount,          // Convert ₱100 → 10000 centavos
+  fromAtomicAmount,        // Convert 10000 → ₱100
+} from '@/lib/paymongo'
+```
+
+**Supported Payment Methods:**
+- GCash (3% fee)
+- PayMaya/Maya (3% fee)
+- Credit/Debit Cards (3.5% + ₱15 fee)
+- GrabPay (3% fee)
+
+**Important Notes:**
+- PayMongo test page UI is controlled by PayMongo, cannot be customized
+- Webhooks should be configured in PayMongo dashboard for production
+- Payment source IDs are single-use (create new source for each order)
+- Cart items stored in localStorage during payment flow
 
 ### Component Structure
 
@@ -212,10 +266,30 @@ Cart is **client-side only** (not stored in database):
 ### Environment Variables
 
 Required in `.env`:
-```
+```bash
+# Database
 DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
+
+# Authentication
 SESSION_SECRET="your-secret-key-min-32-chars"
+
+# Supabase (if using)
+NEXT_PUBLIC_SUPABASE_URL="https://..."
+NEXT_PUBLIC_SUPABASE_ANON_KEY="..."
+
+# PayMongo Payment Gateway
+PAYMONGO_SECRET_KEY="sk_test_..." # Use sk_live_... for production
+PAYMONGO_PUBLIC_KEY="pk_test_..." # Use pk_live_... for production
+NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY="pk_test_..." # For demo banner detection
+NEXT_PUBLIC_APP_URL="http://localhost:3000" # Update for production
 ```
+
+**Important Notes:**
+- Use **TEST keys** (`sk_test_...` / `pk_test_...`) for development and demo
+- Use **LIVE keys** (`sk_live_...` / `pk_live_...`) only after PayMongo business verification
+- Demo mode banner automatically shows when using test keys
+- For Vercel deployment, add all variables in: Settings → Environment Variables
 
 ### Common Tasks
 
@@ -464,25 +538,51 @@ For **Vercel/Serverless deployments**, real-time updates are NOT reliable becaus
 - ✅ Deployed to production (works but has delay due to serverless limitation)
 - ⏳ Next: Implement SSE + Redis for instant updates (10-min task)
 
-### ⏳ PHASE 8: ADVANCED FEATURES
+### ✅ PHASE 8A: PAYMENT INTEGRATION - COMPLETED
 
-**A. Payment Integration**
+**A. PayMongo Integration**
 
-⏳ Stripe/PayPal integration
-⏳ Payment processing
+✅ PayMongo API client (`lib/paymongo.ts`)
+✅ GCash payment support (3% transaction fee)
+✅ Payment source creation endpoint (`POST /api/payment/create`)
+✅ Payment webhook handler (`POST /api/webhooks/paymongo`)
+✅ Payment success page (creates order after payment)
+✅ Payment failure page (preserves cart)
+✅ Demo mode banner (warns users in test mode)
+✅ "Pay with GCash" button in cart
+✅ Support for PayMaya, GrabPay, Credit/Debit cards
+✅ Test mode for development/portfolio demos
+✅ Vercel deployment ready
+
+**Payment Flow:**
+- User clicks "Pay with GCash" → Redirects to PayMongo → User pays → Returns to site → Order created
+
+**Test vs Live:**
+- TEST mode: Demo payments (no real money), requires test keys only
+- LIVE mode: Real payments, requires business verification (BIR, DTI, etc.)
+
+**Goal**: Accept GCash payments for coffee orders ✅
+
+### ⏳ PHASE 8B: ENHANCED FEATURES
+
+**B. Email Notifications** (Optional)
+
 ⏳ Order confirmation emails
+⏳ Payment receipts
+⏳ Order status updates
 
-**B. Image Uploads**
+**C. Image Uploads** (Optional)
 
 ⏳ Product image upload (Cloudinary/UploadThing)
 ⏳ User avatars (optional)
 
-**C. Enhanced UX**
+**D. Enhanced UX** (Mostly Complete)
 
-⏳ Loading states & skeletons
-⏳ Toast notifications
-⏳ Form validation with Zod
-⏳ Responsive design polish
+✅ Loading states
+✅ Toast notifications
+✅ Form validation with Zod
+✅ Responsive design
+⏳ Loading skeletons
 
 **Goal**: Production-ready features.
 
@@ -584,7 +684,7 @@ For **Vercel/Serverless deployments**, real-time updates are NOT reliable becaus
 
 ### Current Status: 🎯
 
-**✅ COMPLETED: 85%**
+**✅ COMPLETED: 90%**
 - Backend APIs (100%)
 - Auth UI (100%)
 - Menu Page (100%)
@@ -592,5 +692,14 @@ For **Vercel/Serverless deployments**, real-time updates are NOT reliable becaus
 - Staff Dashboard UI (100%)
 - Owner Dashboard UI (100%)
 - Real-Time Features SSE (100% - needs Redis for Vercel production)
+- **Payment Integration (100%) - PayMongo GCash/PayMaya**
 
-**⏳ NEXT UP: Advanced Features (Phase 8) or Deploy to Vercel**
+**🚀 DEPLOYED:**
+- Live on Vercel with test mode
+- Demo mode banner active
+- Full payment flow functional
+
+**⏳ NEXT UP:**
+- Add live PayMongo keys (requires business verification)
+- Implement SSE + Redis for Vercel real-time updates
+- Optional: Email notifications, image uploads
