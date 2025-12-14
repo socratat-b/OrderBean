@@ -42,8 +42,8 @@ export default function CartClient({ user }: CartClientProps) {
     setError("");
 
     try {
-      // No need for Authorization header - using httpOnly cookie
-      const response = await fetch("/api/orders", {
+      // Create PayMongo payment source (GCash checkout)
+      const response = await fetch("/api/payment/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -58,29 +58,21 @@ export default function CartClient({ user }: CartClientProps) {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to place order");
+        throw new Error(data.error || "Failed to create payment");
       }
 
       const data = await response.json();
 
-      // Clear cart after successful order
-      clearCart();
+      // Show info toast
+      addToast("Redirecting to GCash payment...", "info", 3000);
 
-      // Show success toast
-      addToast(
-        `Order placed successfully! Order ID: ${data.order.id}`,
-        "success",
-        4000
-      );
-
-      // Redirect to orders page
-      router.push("/orders");
+      // Redirect to GCash checkout
+      window.location.href = data.checkoutUrl;
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Something went wrong";
       setError(errorMessage);
       addToast(errorMessage, "error");
-    } finally {
       setLoading(false);
     }
   };
@@ -276,13 +268,31 @@ export default function CartClient({ user }: CartClientProps) {
             <button
               onClick={handleCheckout}
               disabled={loading}
-              className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-50"
+              className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading
-                ? "Placing Order..."
-                : user
-                  ? "Place Order"
-                  : "Login to Checkout"}
+              {loading ? (
+                "Processing..."
+              ) : user ? (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z"
+                    />
+                  </svg>
+                  Pay with GCash
+                </>
+              ) : (
+                "Login to Checkout"
+              )}
             </button>
 
             <button
