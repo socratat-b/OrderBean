@@ -100,7 +100,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Invalidate products cache for ISR
-    revalidatePath("/menu");
+    revalidatePath("/menu", "page");
+    revalidatePath("/", "page"); // Also revalidate home page featured products
 
     return NextResponse.json(
       {

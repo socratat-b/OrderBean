@@ -61,7 +61,8 @@ export async function PATCH(
     });
 
     // Invalidate products cache for ISR
-    revalidatePath("/menu");
+    revalidatePath("/menu", "page");
+    revalidatePath("/", "page"); // Also revalidate home page featured products
 
     return NextResponse.json({
       success: true,
@@ -114,7 +115,8 @@ export async function DELETE(
     });
 
     // Invalidate products cache for ISR
-    revalidatePath("/menu");
+    revalidatePath("/menu", "page");
+    revalidatePath("/", "page"); // Also revalidate home page featured products
 
     return NextResponse.json({
       success: true,
