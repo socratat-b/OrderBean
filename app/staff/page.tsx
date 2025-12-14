@@ -33,10 +33,11 @@ type OrderStatus = "ALL" | "PENDING" | "PREPARING" | "READY" | "COMPLETED" | "CA
 export default function StaffDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus>("ALL");
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Real-time SSE callbacks
   const handleOrderCreated = useCallback(() => {
@@ -56,7 +57,7 @@ export default function StaffDashboard() {
   );
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(true);
   }, []);
 
   useEffect(() => {
@@ -68,9 +69,29 @@ export default function StaffDashboard() {
     }
   }, [selectedStatus, orders]);
 
-  async function fetchOrders() {
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.custom-dropdown')) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
+  async function fetchOrders(showLoading = false) {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setInitialLoading(true);
+      }
       const response = await fetch("/api/staff/orders");
 
       if (!response.ok) {
@@ -85,7 +106,9 @@ export default function StaffDashboard() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setInitialLoading(false);
+      }
     }
   }
 
@@ -162,12 +185,12 @@ export default function StaffDashboard() {
 
   const statusFilters: OrderStatus[] = ["ALL", "PENDING", "PREPARING", "READY", "COMPLETED", "CANCELLED"];
 
-  if (loading) {
+  if (initialLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-black"></div>
-          <p className="mt-4 text-gray-600">Loading orders...</p>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-border border-t-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading orders...</p>
         </div>
       </div>
     );
@@ -175,12 +198,12 @@ export default function StaffDashboard() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <p className="text-red-600">Error: {error}</p>
+          <p className="text-error font-semibold">Error: {error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 rounded-md bg-black px-4 py-2 text-white hover:bg-gray-800"
+            className="mt-4 rounded-xl bg-primary px-6 py-3 text-primary-foreground font-bold hover:opacity-90 transition-all shadow-md hover:shadow-lg"
           >
             Retry
           </button>
@@ -190,29 +213,93 @@ export default function StaffDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8">
+    <div className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Staff Dashboard</h1>
-              <p className="mt-2 text-sm text-gray-600">
-                Manage customer orders • {orders.length} total orders
+              <h1 className="text-3xl font-bold text-foreground">Staff Dashboard</h1>
+              <p className="mt-2 text-base md:text-sm text-muted-foreground">
+                Manage customer orders • <span className="text-lg md:text-base font-bold text-foreground">{orders.length}</span> total orders
               </p>
             </div>
             {/* Real-time connection indicator */}
-            <div className="flex items-center gap-2">
-              <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-              <span className="text-xs text-gray-600">
+            <div className="hidden md:flex items-center gap-2">
+              <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`}></div>
+              <span className="text-xs text-muted-foreground">
                 {isConnected ? 'Live updates' : 'Connecting...'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Status Filter Buttons */}
-        <div className="mb-6 flex flex-wrap gap-2">
+        {/* Status Filter - Mobile (Custom Dropdown) */}
+        <div className="mb-6 md:hidden">
+          <label className="block text-sm font-semibold text-foreground mb-3">
+            Filter by Status
+          </label>
+          <div className="relative custom-dropdown">
+            {/* Dropdown Trigger Button */}
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="w-full rounded-xl border-2 border-border bg-card px-4 py-3.5 text-left text-base font-bold text-card-foreground shadow-md focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary transition-all"
+            >
+              <div className="flex items-center justify-between">
+                <span>
+                  {selectedStatus} ({selectedStatus === "ALL" ? orders.length : orders.filter((order) => order.status === selectedStatus).length})
+                </span>
+                <svg
+                  className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+            </button>
+
+            {/* Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className="absolute z-50 mt-2 w-full rounded-xl border-2 border-border bg-card shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="max-h-80 overflow-y-auto">
+                  {statusFilters.map((status) => {
+                    const count = status === "ALL"
+                      ? orders.length
+                      : orders.filter((order) => order.status === status).length;
+
+                    return (
+                      <button
+                        key={status}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStatus(status);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`w-full px-4 py-3.5 text-left text-base font-semibold transition-colors ${
+                          selectedStatus === status
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-card-foreground hover:bg-muted'
+                        }`}
+                      >
+                        {status} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Status Filter - Desktop (Buttons) */}
+        <div className="mb-6 hidden md:flex md:flex-wrap md:gap-2">
           {statusFilters.map((status) => {
             const count = status === "ALL"
               ? orders.length
@@ -224,8 +311,8 @@ export default function StaffDashboard() {
                 onClick={() => setSelectedStatus(status)}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                   selectedStatus === status
-                    ? "bg-black text-white shadow-md"
-                    : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "bg-card text-card-foreground hover:bg-muted border border-border"
                 }`}
               >
                 {status} ({count})
@@ -236,14 +323,14 @@ export default function StaffDashboard() {
 
         {/* Orders List */}
         {filteredOrders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white py-12">
+          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card py-12">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
               stroke="currentColor"
-              className="h-16 w-16 text-gray-400"
+              className="h-16 w-16 text-muted-foreground"
             >
               <path
                 strokeLinecap="round"
@@ -251,10 +338,10 @@ export default function StaffDashboard() {
                 d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"
               />
             </svg>
-            <p className="mt-4 text-lg font-semibold text-gray-900">
+            <p className="mt-4 text-lg font-semibold text-card-foreground">
               No {selectedStatus !== "ALL" ? selectedStatus.toLowerCase() : ""} orders
             </p>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-muted-foreground">
               {selectedStatus === "ALL"
                 ? "No orders have been placed yet."
                 : `There are no ${selectedStatus.toLowerCase()} orders at the moment.`}
@@ -269,16 +356,16 @@ export default function StaffDashboard() {
               return (
                 <div
                   key={order.id}
-                  className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                  className="overflow-hidden rounded-xl border-2 border-border bg-card shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
                 >
                   {/* Order Header */}
-                  <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                  <div className="border-b border-border bg-muted px-4 py-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-xs font-medium text-gray-500">
+                        <p className="text-xs font-bold text-muted-foreground tracking-wider">
                           ORDER #{order.id.slice(0, 8).toUpperCase()}
                         </p>
-                        <p className="mt-1 text-sm text-gray-600">
+                        <p className="mt-1 text-sm text-muted-foreground">
                           {formatDate(order.createdAt)}
                         </p>
                       </div>
@@ -293,31 +380,31 @@ export default function StaffDashboard() {
                   </div>
 
                   {/* Customer Info */}
-                  <div className="border-b border-gray-200 bg-white px-4 py-3">
-                    <p className="text-xs font-medium text-gray-500">CUSTOMER</p>
-                    <p className="mt-1 font-semibold text-gray-900">{order.user.name}</p>
-                    <p className="text-sm text-gray-600">{order.user.email}</p>
+                  <div className="border-b border-border bg-card px-4 py-4">
+                    <p className="text-xs font-bold text-muted-foreground tracking-wider">CUSTOMER</p>
+                    <p className="mt-2 font-bold text-card-foreground text-base">{order.user.name}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{order.user.email}</p>
                   </div>
 
                   {/* Order Items */}
-                  <div className="px-4 py-3">
-                    <p className="mb-2 text-xs font-medium text-gray-500">ITEMS</p>
-                    <div className="space-y-2">
+                  <div className="px-4 py-4 bg-card">
+                    <p className="mb-3 text-xs font-bold text-muted-foreground tracking-wider">ITEMS</p>
+                    <div className="space-y-3">
                       {order.orderItems.map((item) => (
-                        <div key={item.id} className="flex items-center gap-3">
+                        <div key={item.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors">
                           {item.product.imageUrl && (
                             <img
                               src={item.product.imageUrl}
                               alt={item.product.name}
-                              className="h-12 w-12 rounded-md object-cover"
+                              className="h-14 w-14 rounded-lg object-cover shadow-sm"
                             />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="truncate text-sm font-medium text-gray-900">
+                            <p className="truncate text-sm font-bold text-card-foreground">
                               {item.product.name}
                             </p>
-                            <p className="text-xs text-gray-600">
-                              {item.quantity}x • ₱{item.price.toFixed(2)}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              <span className="text-lg font-black text-primary">{item.quantity}x</span> <span className="text-muted-foreground">•</span> <span className="font-semibold text-card-foreground">₱{item.price.toFixed(2)}</span>
                             </p>
                           </div>
                         </div>
@@ -326,21 +413,21 @@ export default function StaffDashboard() {
                   </div>
 
                   {/* Order Total & Actions */}
-                  <div className="border-t border-gray-200 bg-gray-50 px-4 py-3">
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Total</span>
-                      <span className="text-lg font-bold text-gray-900">
+                  <div className="border-t-2 border-border bg-muted px-4 py-4">
+                    <div className="mb-4 flex items-center justify-between">
+                      <span className="text-sm font-bold text-muted-foreground tracking-wider">TOTAL</span>
+                      <span className="text-2xl font-black text-primary">
                         ₱{order.total.toFixed(2)}
                       </span>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex gap-2">
+                    <div className="flex flex-col md:flex-row gap-2">
                       {nextStatus && (
                         <button
                           onClick={() => updateOrderStatus(order.id, nextStatus)}
                           disabled={isUpdating}
-                          className="flex-1 rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                          className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg"
                         >
                           {isUpdating ? "Updating..." : `Mark ${nextStatus}`}
                         </button>
@@ -350,7 +437,7 @@ export default function StaffDashboard() {
                         <button
                           onClick={() => updateOrderStatus(order.id, "CANCELLED")}
                           disabled={isUpdating}
-                          className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition-colors"
+                          className="w-full md:w-auto rounded-xl border-2 border-error bg-card px-4 py-3 text-sm font-bold text-error hover:bg-error hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                           Cancel
                         </button>
