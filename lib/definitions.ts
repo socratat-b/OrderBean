@@ -24,6 +24,23 @@ export const LoginFormSchema = z.object({
   password: z.string().min(1, { message: "Password is required." }).trim(),
 });
 
+export const ChangePasswordFormSchema = z.object({
+  currentPassword: z.string().min(1, { message: "Current password is required." }).trim(),
+  newPassword: z
+    .string()
+    .min(8, { message: "Be at least 8 characters long" })
+    .regex(/[a-zA-Z]/, { message: "Contain at least one letter." })
+    .regex(/[0-9]/, { message: "Contain at least one number." })
+    .regex(/[^a-zA-Z0-9]/, {
+      message: "Contain at least one special character.",
+    })
+    .trim(),
+  confirmPassword: z.string().min(1, { message: "Please confirm your password." }).trim(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 // Types
 export type FormState =
   | {
@@ -31,6 +48,9 @@ export type FormState =
         name?: string[];
         email?: string[];
         password?: string[];
+        currentPassword?: string[];
+        newPassword?: string[];
+        confirmPassword?: string[];
       };
       message?: string;
     }

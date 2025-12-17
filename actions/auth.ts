@@ -1,11 +1,12 @@
 // actions/auth.ts
 "use server";
 
-import { FormState, LoginFormSchema, SignupFormSchema } from "@/lib/definitions";
+import { FormState, LoginFormSchema, SignupFormSchema, ChangePasswordFormSchema } from "@/lib/definitions";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { createSession, deleteSession } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { getSession } from "@/lib/dal";
 
 export async function signup(state: FormState, formData: FormData): Promise<FormState> {
   // 1. Validate form fields
@@ -132,4 +133,71 @@ export async function login(state: FormState, formData: FormData): Promise<FormS
 export async function logout() {
   await deleteSession();
   redirect("/login");
+}
+
+export async function changePassword(state: FormState, formData: FormData): Promise<FormState> {
+  // 1. Verify user is authenticated
+  const session = await getSession();
+  if (!session) {
+    return {
+      message: "You must be logged in to change your password.",
+    };
+  }
+
+  // 2. Validate form fields
+  const validatedFields = ChangePasswordFormSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  // If any form fields are invalid, return early
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  const { currentPassword, newPassword } = validatedFields.data;
+
+  // 3. Get user from database
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+  });
+
+  if (!user) {
+    return {
+      message: "User not found.",
+    };
+  }
+
+  // 4. Verify current password
+  const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+
+  if (!passwordMatch) {
+    return {
+      message: "Current password is incorrect.",
+    };
+  }
+
+  // 5. Hash new password
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  // 6. Update password in database
+  try {
+    await prisma.user.update({
+      where: { id: session.userId },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    return {
+      message: "Password changed successfully!",
+    };
+  } catch (error) {
+    return {
+      message: "An error occurred while changing your password.",
+    };
+  }
 }
