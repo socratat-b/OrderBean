@@ -38,26 +38,97 @@ export default function SettingsClient({ user }: { user: User }) {
   return (
     <div className="min-h-screen bg-base-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-base-content mb-8">Settings</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-base-content mb-2">Settings</h1>
+          <p className="text-base-content/60">
+            Customize your account preferences and security settings
+          </p>
+        </div>
 
         {/* Account Information Card */}
         <div className="card bg-base-200 shadow-lg mb-6">
           <div className="card-body">
-            <h2 className="card-title text-2xl mb-4">Account Information</h2>
+            <h2 className="card-title text-2xl mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-7 h-7"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              Account Information
+            </h2>
             <div className="space-y-4">
-              <div>
-                <p className="text-sm text-base-content/60 mb-1">Name</p>
-                <p className="text-lg font-medium">{user.name}</p>
+              <div className="p-4 bg-base-300/50 rounded-lg border border-base-content/10">
+                <div className="flex items-center gap-3 mb-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-5 h-5 text-primary"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                    />
+                  </svg>
+                  <p className="text-sm text-base-content/60">Name</p>
+                </div>
+                <p className="text-lg font-medium ml-8">{user.name}</p>
               </div>
-              <div>
-                <p className="text-sm text-base-content/60 mb-1">Email</p>
-                <p className="text-lg font-medium">{user.email}</p>
+              <div className="p-4 bg-base-300/50 rounded-lg border border-base-content/10">
+                <div className="flex items-center gap-3 mb-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-5 h-5 text-primary"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+                    />
+                  </svg>
+                  <p className="text-sm text-base-content/60">Email</p>
+                </div>
+                <p className="text-lg font-medium ml-8">{user.email}</p>
               </div>
-              <div>
-                <p className="text-sm text-base-content/60 mb-1">Role</p>
-                <span className="badge badge-primary capitalize">
-                  {user.role.toLowerCase()}
-                </span>
+              <div className="p-4 bg-base-300/50 rounded-lg border border-base-content/10">
+                <div className="flex items-center gap-3 mb-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-5 h-5 text-primary"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                    />
+                  </svg>
+                  <p className="text-sm text-base-content/60">Role</p>
+                </div>
+                <div className="ml-8">
+                  <span className="badge badge-primary badge-lg capitalize">
+                    {user.role.toLowerCase()}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -66,49 +137,151 @@ export default function SettingsClient({ user }: { user: User }) {
         {/* Appearance Settings Card */}
         <div className="card bg-base-200 shadow-lg mb-6">
           <div className="card-body">
-            <h2 className="card-title text-2xl mb-4">Appearance</h2>
-            <div className="space-y-4">
+            <h2 className="card-title text-2xl mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-7 h-7"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42"
+                />
+              </svg>
+              Appearance
+            </h2>
+
+            <div className="space-y-6">
+              {/* Theme Selector */}
               <div>
                 <label className="label">
-                  <span className="label-text font-semibold">Theme</span>
+                  <span className="label-text font-semibold text-base">Theme Preference</span>
+                  <span className="label-text-alt text-base-content/60">
+                    Choose your preferred color scheme
+                  </span>
                 </label>
-                <div className="flex gap-3">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  {/* Light Theme Card */}
                   <button
                     onClick={() => setTheme("light")}
-                    className={`btn ${
+                    className={`relative p-6 rounded-lg border-2 transition-all duration-200 text-left ${
                       theme === "light"
-                        ? "btn-primary"
-                        : "btn-outline"
+                        ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
+                        : "border-base-300 bg-base-300/50 hover:border-base-content/20 hover:shadow-md"
                     }`}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="w-5 h-5 mr-2"
-                    >
-                      <path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 12a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM18.894 6.166a.75.75 0 0 0-1.06-1.06l-1.591 1.59a.75.75 0 1 0 1.06 1.061l1.591-1.59ZM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5H21a.75.75 0 0 1 .75.75ZM17.834 18.894a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 1 0-1.061 1.06l1.59 1.591ZM12 18a.75.75 0 0 1 .75.75V21a.75.75 0 0 1-1.5 0v-2.25A.75.75 0 0 1 12 18ZM7.758 17.303a.75.75 0 0 0-1.061-1.06l-1.591 1.59a.75.75 0 0 0 1.06 1.061l1.591-1.59ZM6 12a.75.75 0 0 1-.75.75H3a.75.75 0 0 1 0-1.5h2.25A.75.75 0 0 1 6 12ZM6.697 7.757a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 0 0-1.061 1.06l1.59 1.591Z" />
-                    </svg>
-                    Light
+                    <div className="flex items-start gap-4">
+                      <div className={`p-3 rounded-lg ${theme === "light" ? "bg-primary text-primary-content" : "bg-base-100"}`}>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="w-6 h-6"
+                        >
+                          <path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 12a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM18.894 6.166a.75.75 0 0 0-1.06-1.06l-1.591 1.59a.75.75 0 1 0 1.06 1.061l1.591-1.59ZM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5H21a.75.75 0 0 1 .75.75ZM17.834 18.894a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 1 0-1.061 1.06l1.59 1.591ZM12 18a.75.75 0 0 1 .75.75V21a.75.75 0 0 1-1.5 0v-2.25A.75.75 0 0 1 12 18ZM7.758 17.303a.75.75 0 0 0-1.061-1.06l-1.591 1.59a.75.75 0 0 0 1.06 1.061l1.591-1.59ZM6 12a.75.75 0 0 1-.75.75H3a.75.75 0 0 1 0-1.5h2.25A.75.75 0 0 1 6 12ZM6.697 7.757a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 0 0-1.061 1.06l1.59 1.591Z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg mb-1">Light Mode</h3>
+                        <p className="text-sm text-base-content/60">
+                          Bright and clean interface for daytime use
+                        </p>
+                      </div>
+                      {theme === "light" && (
+                        <div className="absolute top-4 right-4">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="w-6 h-6 text-primary"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
                   </button>
+
+                  {/* Dark Theme Card */}
                   <button
                     onClick={() => setTheme("dark")}
-                    className={`btn ${
+                    className={`relative p-6 rounded-lg border-2 transition-all duration-200 text-left ${
                       theme === "dark"
-                        ? "btn-primary"
-                        : "btn-outline"
+                        ? "border-primary bg-primary/10 shadow-lg scale-[1.02]"
+                        : "border-base-300 bg-base-300/50 hover:border-base-content/20 hover:shadow-md"
                     }`}
                   >
+                    <div className="flex items-start gap-4">
+                      <div className={`p-3 rounded-lg ${theme === "dark" ? "bg-primary text-primary-content" : "bg-base-100"}`}>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          className="w-6 h-6"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M9.528 1.718a.75.75 0 01.162.819A8.97 8.97 0 009 6a9 9 0 009 9 8.97 8.97 0 003.463-.69.75.75 0 01.981.98 10.503 10.503 0 01-9.694 6.46c-5.799 0-10.5-4.701-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 01.818.162z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg mb-1">Dark Mode</h3>
+                        <p className="text-sm text-base-content/60">
+                          Easy on the eyes for low-light environments
+                        </p>
+                      </div>
+                      {theme === "dark" && (
+                        <div className="absolute top-4 right-4">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="w-6 h-6 text-primary"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                </div>
+
+                {/* Current Theme Info */}
+                <div className="mt-4 p-4 bg-base-300/50 rounded-lg border border-base-content/10">
+                  <div className="flex items-center gap-2">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
                       viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="w-5 h-5 mr-2"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5 text-primary"
                     >
-                      <path d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"
+                      />
                     </svg>
-                    Dark
-                  </button>
+                    <span className="text-sm text-base-content/80">
+                      Currently using <span className="font-semibold capitalize">{theme}</span> theme
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -119,7 +292,23 @@ export default function SettingsClient({ user }: { user: User }) {
         <div className="card bg-base-200 shadow-lg mb-6">
           <div className="card-body">
             <div className="flex items-start justify-between mb-4">
-              <h2 className="card-title text-2xl">Password</h2>
+              <h2 className="card-title text-2xl">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-7 h-7"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                  />
+                </svg>
+                Password
+              </h2>
               {!isChangingPassword && (
                 <button
                   onClick={() => setIsChangingPassword(true)}

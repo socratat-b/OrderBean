@@ -94,15 +94,36 @@ export default function ProfileClient({ user }: { user: User }) {
   return (
     <div className="min-h-screen bg-base-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-base-content mb-8">
-          My Profile
-        </h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-base-content mb-2">
+            My Profile
+          </h1>
+          <p className="text-base-content/60">
+            Manage your personal information and view your ordering history
+          </p>
+        </div>
 
         {/* Profile Information Card */}
         <div className="card bg-base-200 shadow-lg mb-6">
           <div className="card-body">
             <div className="flex items-start justify-between mb-4">
-              <h2 className="card-title text-2xl">Profile Information</h2>
+              <h2 className="card-title text-2xl">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-7 h-7"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                  />
+                </svg>
+                Profile Information
+              </h2>
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
@@ -189,17 +210,69 @@ export default function ProfileClient({ user }: { user: User }) {
               </form>
             ) : (
               <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-base-content/60 mb-1">Name</p>
-                  <p className="text-lg font-medium">{user.name}</p>
+                <div className="p-4 bg-base-300/50 rounded-lg border border-base-content/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5 text-primary"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+                      />
+                    </svg>
+                    <p className="text-sm text-base-content/60">Name</p>
+                  </div>
+                  <p className="text-lg font-medium ml-8">{user.name}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-base-content/60 mb-1">Email</p>
-                  <p className="text-lg font-medium">{user.email}</p>
+                <div className="p-4 bg-base-300/50 rounded-lg border border-base-content/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5 text-primary"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+                      />
+                    </svg>
+                    <p className="text-sm text-base-content/60">Email</p>
+                  </div>
+                  <p className="text-lg font-medium ml-8">{user.email}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-base-content/60 mb-1">Role</p>
-                  <span className="badge badge-primary">{user.role}</span>
+                <div className="p-4 bg-base-300/50 rounded-lg border border-base-content/10">
+                  <div className="flex items-center gap-3 mb-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                      className="w-5 h-5 text-primary"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                      />
+                    </svg>
+                    <p className="text-sm text-base-content/60">Role</p>
+                  </div>
+                  <div className="ml-8">
+                    <span className="badge badge-primary badge-lg capitalize">
+                      {user.role.toLowerCase()}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -209,7 +282,23 @@ export default function ProfileClient({ user }: { user: User }) {
         {/* Statistics Card */}
         <div className="card bg-base-200 shadow-lg">
           <div className="card-body">
-            <h2 className="card-title text-2xl mb-4">Order Statistics</h2>
+            <h2 className="card-title text-2xl mb-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-7 h-7"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
+                />
+              </svg>
+              Order Statistics
+            </h2>
 
             {isLoadingStats ? (
               <div className="flex justify-center items-center py-8">
