@@ -5,6 +5,8 @@ import { useTheme } from "@/context/ThemeContext";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import SideBar from "./Sidebar";
+import NotificationBell from "@/components/NotificationBell";
+import NotificationListener from "@/components/NotificationListener";
 
 type User = {
   id: string;
@@ -157,6 +159,9 @@ export default function Header({ user }: { user: User }) {
                           </svg>
                         )}
                       </button>
+
+                      {/* Notification Bell */}
+                      <NotificationBell />
 
                       {/* Cart Button with Badge - Only for customers */}
                       {user.role === "CUSTOMER" && (
@@ -425,6 +430,9 @@ export default function Header({ user }: { user: User }) {
                 )}
               </button>
 
+              {/* Notification Bell - Mobile - Show for logged in users */}
+              {mounted && user && <NotificationBell />}
+
               {/* Cart - Mobile - Show for guests and customers */}
               {mounted && (!user || user.role === "CUSTOMER") && (
                 <Link
@@ -472,6 +480,8 @@ export default function Header({ user }: { user: User }) {
         </div>
       </header>
       <SideBar isOpen={isOpen} onClose={handleCloseSidebar} user={user} />
+      {/* Listen to order updates and create notifications */}
+      {user && <NotificationListener userId={user.id} />}
     </>
   );
 }
