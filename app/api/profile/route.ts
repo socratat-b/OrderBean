@@ -18,41 +18,76 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { name } = body;
+    const { name, phone } = body;
 
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Name is required and must be a non-empty string" },
-        { status: 400 }
-      );
+    // Validate name if provided
+    if (name !== undefined) {
+      if (!name || typeof name !== "string" || name.trim().length === 0) {
+        return NextResponse.json(
+          { error: "Name is required and must be a non-empty string" },
+          { status: 400 }
+        );
+      }
+
+      if (name.trim().length < 2) {
+        return NextResponse.json(
+          { error: "Name must be at least 2 characters long" },
+          { status: 400 }
+        );
+      }
+
+      if (name.trim().length > 100) {
+        return NextResponse.json(
+          { error: "Name must be less than 100 characters" },
+          { status: 400 }
+        );
+      }
     }
 
-    if (name.trim().length < 2) {
-      return NextResponse.json(
-        { error: "Name must be at least 2 characters long" },
-        { status: 400 }
-      );
+    // Validate phone if provided
+    if (phone !== undefined && phone !== null) {
+      if (typeof phone !== "string") {
+        return NextResponse.json(
+          { error: "Phone must be a string" },
+          { status: 400 }
+        );
+      }
+
+      const trimmedPhone = phone.trim();
+
+      // Allow empty string to clear phone
+      if (trimmedPhone.length > 0) {
+        // Basic phone validation (10-15 digits, optional + and spaces/dashes)
+        const phoneRegex = /^[\d\s\-\+\(\)]{10,20}$/;
+        if (!phoneRegex.test(trimmedPhone)) {
+          return NextResponse.json(
+            { error: "Please enter a valid phone number" },
+            { status: 400 }
+          );
+        }
+      }
     }
 
-    if (name.trim().length > 100) {
-      return NextResponse.json(
-        { error: "Name must be less than 100 characters" },
-        { status: 400 }
-      );
+    // Build update data object
+    const updateData: { name?: string; phone?: string | null } = {};
+    if (name !== undefined) {
+      updateData.name = name.trim();
+    }
+    if (phone !== undefined) {
+      updateData.phone = phone === null || phone.trim() === "" ? null : phone.trim();
     }
 
-    // Update user name
+    // Update user
     const updatedUser = await prisma.user.update({
       where: {
         id: session.userId,
       },
-      data: {
-        name: name.trim(),
-      },
+      data: updateData,
       select: {
         id: true,
         name: true,
         email: true,
+        phone: true,
         role: true,
       },
     });
