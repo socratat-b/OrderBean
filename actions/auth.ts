@@ -39,8 +39,9 @@ export async function signup(state: FormState, formData: FormData): Promise<Form
   }
 
   // 4. Insert the user into the database
+  let user;
   try {
-    const user = await prisma.user.create({
+    user = await prisma.user.create({
       data: {
         name,
         email,
@@ -57,23 +58,23 @@ export async function signup(state: FormState, formData: FormData): Promise<Form
 
     // 5. Create user session
     await createSession(user.id, user.role);
-
-    // 6. Get redirect parameter (if provided)
-    const redirectTo = formData.get("redirect") as string | null;
-
-    // 7. Redirect based on role (staff/owner) or redirect callback (customer)
-    if (user.role === "STAFF") {
-      redirect("/staff");
-    } else if (user.role === "OWNER") {
-      redirect("/owner");
-    } else {
-      // For customers, use redirect callback if provided, otherwise default to /menu
-      redirect(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/menu");
-    }
   } catch (error) {
     return {
       message: "An error occurred while creating your account.",
     };
+  }
+
+  // 6. Get redirect parameter (if provided)
+  const redirectTo = formData.get("redirect") as string | null;
+
+  // 7. Redirect based on role (staff/owner) or redirect callback (customer)
+  if (user.role === "STAFF") {
+    redirect("/staff");
+  } else if (user.role === "OWNER") {
+    redirect("/owner");
+  } else {
+    // For customers, use redirect callback if provided, otherwise default to /menu
+    redirect(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/menu");
   }
 }
 
