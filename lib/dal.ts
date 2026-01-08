@@ -30,6 +30,10 @@ export const getUser = cache(async () => {
         id: true,
         name: true,
         email: true,
+        phone: true,
+        barangay: true,
+        street: true,
+        landmark: true,
         role: true,
       },
     });
@@ -60,6 +64,10 @@ export const getCurrentUser = cache(async () => {
         id: true,
         name: true,
         email: true,
+        phone: true,
+        barangay: true,
+        street: true,
+        landmark: true,
         role: true,
       },
     });

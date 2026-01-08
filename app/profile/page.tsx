@@ -1,6 +1,7 @@
 import { verifySession, getUser } from "@/lib/dal";
 import { redirect } from "next/navigation";
 import ProfileClient from "./ProfileClient";
+import { getProfileStatsServer } from "@/actions/profile";
 
 export default async function ProfilePage() {
   const session = await verifySession();
@@ -16,5 +17,8 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  return <ProfileClient user={user} />;
+  // Fetch profile stats in Server Component (recommended pattern)
+  const stats = await getProfileStatsServer();
+
+  return <ProfileClient user={user} initialStats={stats} />;
 }

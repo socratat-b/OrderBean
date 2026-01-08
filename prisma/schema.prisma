@@ -36,7 +36,10 @@ model User {
   email     String   @unique
   password  String
   name      String
-  phone     String?  // Optional phone number
+  phone     String?  // Philippine mobile number (09xxxxxxxxx)
+  barangay  String?  // Barangay/Area for delivery
+  street    String?  // Street/Purok/Sitio address
+  landmark  String?  // Landmark for easier location
   role      UserRole @default(CUSTOMER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
