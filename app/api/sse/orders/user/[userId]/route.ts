@@ -38,8 +38,10 @@ export async function GET(
 
       // Handler for order updates
       const handleOrderUpdate = (event: OrderEvent) => {
+        console.log(`[SSE] Event received - Target: ${userId}, Event userId: ${event.userId}, Order: ${event.orderId}`);
         // Only send updates for this user's orders
         if (event.userId === userId) {
+          console.log(`[SSE] ✓ Sending to user ${userId}: order ${event.orderId} status ${event.status}`);
           try {
             controller.enqueue(
               encoder.encode(
@@ -49,13 +51,17 @@ export async function GET(
           } catch (error) {
             console.error("Error sending SSE message:", error);
           }
+        } else {
+          console.log(`[SSE] ✗ Filtered out for user ${userId} (event was for user ${event.userId})`);
         }
       };
 
       // Handler for order creation
       const handleOrderCreated = (event: OrderEvent) => {
+        console.log(`[SSE] Order created event - Target: ${userId}, Event userId: ${event.userId}, Order: ${event.orderId}`);
         // Only send updates for this user's orders
         if (event.userId === userId) {
+          console.log(`[SSE] ✓ Sending order created to user ${userId}: order ${event.orderId}`);
           try {
             controller.enqueue(
               encoder.encode(
@@ -65,6 +71,8 @@ export async function GET(
           } catch (error) {
             console.error("Error sending SSE message:", error);
           }
+        } else {
+          console.log(`[SSE] ✗ Filtered out order created for user ${userId} (event was for user ${event.userId})`);
         }
       };
 

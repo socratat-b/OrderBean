@@ -34,7 +34,7 @@ export function useOrderNotifications(userId: string | null) {
     eventSource.onmessage = (event) => {
       try {
         const data: OrderUpdateEvent = JSON.parse(event.data);
-        console.log("[Notifications] Received:", data);
+        console.log(`[Notifications] User ${userId} received:`, data);
 
         // Create notification for order updates
         if (data.type === "order_updated" && data.orderId && data.status) {
@@ -42,27 +42,30 @@ export function useOrderNotifications(userId: string | null) {
 
           // Only notify if status actually changed (not just a refresh)
           if (previousStatus && previousStatus !== data.status) {
+            const orderIdShort = data.orderId.slice(-6); // Show last 6 chars
+
             const statusMessages: Record<string, { title: string; message: string }> = {
               PREPARING: {
                 title: "Order in Progress",
-                message: "Your order is being prepared!",
+                message: `Order #${orderIdShort} is being prepared!`,
               },
               READY: {
                 title: "Order Ready",
-                message: "Your order is ready for pickup!",
+                message: `Order #${orderIdShort} is ready for pickup!`,
               },
               COMPLETED: {
                 title: "Order Completed",
-                message: "Thank you for your order!",
+                message: `Order #${orderIdShort} completed. Thank you!`,
               },
               CANCELLED: {
                 title: "Order Cancelled",
-                message: "Your order has been cancelled.",
+                message: `Order #${orderIdShort} has been cancelled.`,
               },
             };
 
             const notification = statusMessages[data.status];
             if (notification) {
+              console.log(`[Notifications] Creating notification for user ${userId}, order ${data.orderId}`);
               addNotification(
                 notification.title,
                 notification.message,
@@ -78,9 +81,11 @@ export function useOrderNotifications(userId: string | null) {
 
         // Create notification for new orders (after payment)
         if (data.type === "order_created" && data.orderId) {
+          const orderIdShort = data.orderId.slice(-6);
+          console.log(`[Notifications] Creating order placed notification for user ${userId}, order ${data.orderId}`);
           addNotification(
             "Order Placed",
-            "Your order has been placed successfully!",
+            `Order #${orderIdShort} placed successfully!`,
             "payment",
             data.orderId
           );

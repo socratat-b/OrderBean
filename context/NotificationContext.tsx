@@ -17,6 +17,7 @@ export interface Notification {
   timestamp: number;
   read: boolean;
   orderId?: string;
+  userId?: string; // Added to track which user owns this notification
 }
 
 interface NotificationContextType {
@@ -32,6 +33,7 @@ interface NotificationContextType {
   clearAll: () => void;
   removeNotification: (id: string) => void;
   unreadCount: number;
+  setCurrentUser: (userId: string | null) => void; // Added to handle user changes
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(
@@ -42,27 +44,53 @@ const MAX_NOTIFICATIONS = 50; // Keep last 50 notifications
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
 
-  // Load from localStorage after hydration
+  // Get per-user localStorage key
+  const getStorageKey = useCallback((userId: string | null) => {
+    return userId ? `notifications-${userId}` : null;
+  }, []);
+
+  // Load notifications for current user
   useEffect(() => {
-    const stored = localStorage.getItem("notifications");
+    if (!isHydrated) {
+      setIsHydrated(true);
+      return;
+    }
+
+    const storageKey = getStorageKey(currentUserId);
+    if (!storageKey) {
+      // No user logged in, clear notifications
+      setNotifications([]);
+      return;
+    }
+
+    const stored = localStorage.getItem(storageKey);
     if (stored) {
       try {
         setNotifications(JSON.parse(stored));
+        console.log(`[Notifications] Loaded ${JSON.parse(stored).length} notifications for user ${currentUserId}`);
       } catch (error) {
         console.error("Error loading notifications:", error);
+        setNotifications([]);
       }
+    } else {
+      // No stored notifications for this user
+      setNotifications([]);
     }
-    setIsHydrated(true);
-  }, []);
+  }, [currentUserId, isHydrated, getStorageKey]);
 
   // Save to localStorage whenever notifications change
   useEffect(() => {
-    if (isHydrated) {
-      localStorage.setItem("notifications", JSON.stringify(notifications));
+    if (!isHydrated || !currentUserId) return;
+
+    const storageKey = getStorageKey(currentUserId);
+    if (storageKey) {
+      localStorage.setItem(storageKey, JSON.stringify(notifications));
+      console.log(`[Notifications] Saved ${notifications.length} notifications for user ${currentUserId}`);
     }
-  }, [notifications, isHydrated]);
+  }, [notifications, currentUserId, isHydrated, getStorageKey]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -73,6 +101,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       type: Notification["type"],
       orderId?: string
     ) => {
+      if (!currentUserId) {
+        console.warn("[Notifications] Cannot add notification - no user logged in");
+        return;
+      }
+
       const newNotification: Notification = {
         id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         title,
@@ -81,7 +114,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         timestamp: Date.now(),
         read: false,
         orderId,
+        userId: currentUserId, // Store which user this notification belongs to
       };
+
+      console.log(`[Notifications] Adding notification for user ${currentUserId}:`, newNotification);
 
       setNotifications((prev) => {
         const updated = [newNotification, ...prev];
@@ -89,8 +125,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         return updated.slice(0, MAX_NOTIFICATIONS);
       });
     },
-    []
+    [currentUserId]
   );
+
+  const setCurrentUser = useCallback((userId: string | null) => {
+    console.log(`[Notifications] User changed: ${currentUserId} → ${userId}`);
+    setCurrentUserId(userId);
+  }, [currentUserId]);
 
   const markAsRead = useCallback((id: string) => {
     setNotifications((prev) =>
@@ -120,6 +161,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         clearAll,
         removeNotification,
         unreadCount,
+        setCurrentUser,
       }}
     >
       {children}
