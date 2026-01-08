@@ -6,12 +6,12 @@ export default function ProfileWarningBanner({
   onCompleteClick,
 }: ProfileWarningBannerProps) {
   return (
-    <div className="mb-8 rounded-xl border-2 border-amber-500 bg-amber-300 p-6 shadow-lg dark:border-amber-800 dark:bg-amber-900/20">
-      <div className="flex items-start gap-4">
+    <div className="mb-6 md:mb-8 rounded-xl md:rounded-2xl border-2 border-amber-500 bg-amber-300 p-4 md:p-6 shadow-lg dark:border-amber-800 dark:bg-amber-900/20">
+      <div className="flex flex-col sm:flex-row items-start gap-3 md:gap-4">
         <div className="flex-shrink-0">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-7 w-7 text-amber-800 dark:text-amber-400"
+            className="h-6 w-6 md:h-7 md:w-7 text-amber-800 dark:text-amber-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -24,18 +24,18 @@ export default function ProfileWarningBanner({
             />
           </svg>
         </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-bold text-black dark:text-amber-700">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base md:text-lg font-bold text-black dark:text-amber-700">
             Complete Your Profile
           </h3>
-          <p className="mt-1 text-sm text-black dark:text-amber-300">
+          <p className="mt-1 text-xs md:text-sm text-black/90 dark:text-amber-300 leading-relaxed">
             Add your contact and delivery information to enable faster checkout
             and delivery tracking.
           </p>
         </div>
         <button
           onClick={onCompleteClick}
-          className="flex-shrink-0 rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white shadow-md transition-colors hover:bg-gray-800 dark:bg-amber-700 dark:hover:bg-amber-800"
+          className="w-full sm:w-auto flex-shrink-0 rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all active:scale-95 hover:bg-gray-800 dark:bg-amber-700 dark:hover:bg-amber-800"
         >
           Complete Now
         </button>

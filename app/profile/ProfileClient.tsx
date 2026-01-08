@@ -101,14 +101,14 @@ export default function ProfileClient({ user, initialStats }: ProfileClientProps
   };
 
   return (
-    <div className="dark:from-background dark:to-background min-h-dvh bg-gradient-to-b from-gray-50 to-white px-4 py-12 md:px-8">
+    <div className="dark:from-background dark:to-background min-h-dvh bg-gradient-to-b from-gray-50 to-white px-4 py-6 md:py-12 md:px-8">
       <div className="mx-auto max-w-5xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="dark:text-foreground text-4xl font-bold tracking-tight text-black">
+        <div className="mb-6 md:mb-8">
+          <h1 className="dark:text-foreground text-2xl md:text-4xl font-bold tracking-tight text-black">
             My Profile
           </h1>
-          <p className="dark:text-muted-foreground mt-2 text-lg text-black">
+          <p className="mt-1.5 md:mt-2 text-sm md:text-lg text-black/70 dark:text-white/70">
             Manage your information for faster ordering and delivery
           </p>
         </div>

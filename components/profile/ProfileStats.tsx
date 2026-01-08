@@ -7,13 +7,13 @@ interface ProfileStatsProps {
 
 export default function ProfileStats({ stats, isLoading }: ProfileStatsProps) {
   return (
-    <div className="dark:border-border dark:bg-card overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
-      <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-5">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/20 dark:bg-primary/10 rounded-full p-2">
+    <div className="dark:border-border dark:bg-card overflow-hidden rounded-xl md:rounded-2xl border border-gray-200 bg-white shadow-lg md:shadow-xl">
+      <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-4 md:px-6 md:py-5">
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="bg-primary/20 dark:bg-primary/10 rounded-full p-1.5 md:p-2 flex-shrink-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="text-primary h-6 w-6"
+              className="text-primary h-5 w-5 md:h-6 md:w-6"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -26,17 +26,17 @@ export default function ProfileStats({ stats, isLoading }: ProfileStatsProps) {
               />
             </svg>
           </div>
-          <h2 className="dark:text-card-foreground text-2xl font-bold text-gray-900">
+          <h2 className="dark:text-card-foreground text-lg md:text-2xl font-bold text-gray-900">
             Order Statistics
           </h2>
         </div>
       </div>
 
-      <div className="p-6 md:p-8">
+      <div className="p-4 md:p-6 lg:p-8">
         {isLoading ? (
           <div className="flex justify-center py-12">
             <svg
-              className="text-primary h-10 w-10 animate-spin"
+              className="text-primary h-8 w-8 md:h-10 md:w-10 animate-spin"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -57,38 +57,38 @@ export default function ProfileStats({ stats, isLoading }: ProfileStatsProps) {
             </svg>
           </div>
         ) : stats ? (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
-            <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5 text-center shadow-sm">
+          <div className="grid grid-cols-2 gap-3 md:gap-4 md:grid-cols-4 lg:gap-6">
+            <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 rounded-lg md:rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-3 md:p-4 lg:p-5 text-center shadow-sm">
               <p className="dark:text-muted-foreground text-xs font-medium text-gray-500">
                 Total Orders
               </p>
-              <p className="text-primary mt-2 text-3xl font-bold">
+              <p className="text-primary mt-1.5 md:mt-2 text-2xl md:text-3xl font-bold">
                 {stats.totalOrders}
               </p>
             </div>
-            <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5 text-center shadow-sm">
+            <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 rounded-lg md:rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-3 md:p-4 lg:p-5 text-center shadow-sm">
               <p className="dark:text-muted-foreground text-xs font-medium text-gray-500">
                 Completed
               </p>
-              <p className="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">
+              <p className="mt-1.5 md:mt-2 text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">
                 {stats.completedOrders}
               </p>
             </div>
-            <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5 text-center shadow-sm">
+            <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 rounded-lg md:rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-3 md:p-4 lg:p-5 text-center shadow-sm">
               <p className="dark:text-muted-foreground text-xs font-medium text-gray-500">
                 Total Spent
               </p>
-              <p className="dark:text-foreground mt-2 text-2xl font-bold text-gray-900">
+              <p className="dark:text-foreground mt-1.5 md:mt-2 text-xl md:text-2xl font-bold text-gray-900">
                 ₱{stats.totalSpent.toFixed(2)}
               </p>
             </div>
-            <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-5 text-center shadow-sm">
+            <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 rounded-lg md:rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-3 md:p-4 lg:p-5 text-center shadow-sm">
               <p className="dark:text-muted-foreground text-xs font-medium text-gray-500">
                 Favorite
               </p>
               {stats.favoriteProduct ? (
                 <>
-                  <p className="dark:text-foreground mt-2 truncate text-base font-bold text-gray-900">
+                  <p className="dark:text-foreground mt-1.5 md:mt-2 truncate text-sm md:text-base font-bold text-gray-900">
                     {stats.favoriteProduct.name}
                   </p>
                   <p className="dark:text-muted-foreground text-xs text-gray-500">
@@ -96,7 +96,7 @@ export default function ProfileStats({ stats, isLoading }: ProfileStatsProps) {
                   </p>
                 </>
               ) : (
-                <p className="dark:text-muted-foreground mt-2 text-sm text-gray-400">
+                <p className="dark:text-muted-foreground mt-1.5 md:mt-2 text-sm text-gray-400">
                   No orders yet
                 </p>
               )}

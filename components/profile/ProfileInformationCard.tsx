@@ -24,15 +24,15 @@ export default function ProfileInformationCard({
   isLoading,
 }: ProfileInformationCardProps) {
   return (
-    <div className="dark:border-border dark:bg-card mb-8 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+    <div className="dark:border-border dark:bg-card mb-6 md:mb-8 overflow-hidden rounded-xl md:rounded-2xl border border-gray-200 bg-white shadow-lg md:shadow-xl">
       {/* Header */}
-      <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/20 dark:bg-primary/10 rounded-full p-2">
+      <div className="dark:border-border dark:from-muted/30 dark:to-muted/30 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-4 md:px-6 md:py-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+            <div className="bg-primary/20 dark:bg-primary/10 rounded-full p-1.5 md:p-2 flex-shrink-0">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="text-primary h-6 w-6"
+                className="text-primary h-5 w-5 md:h-6 md:w-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -45,18 +45,18 @@ export default function ProfileInformationCard({
                 />
               </svg>
             </div>
-            <h2 className="dark:text-card-foreground text-2xl font-bold text-gray-900">
+            <h2 className="dark:text-card-foreground text-lg md:text-2xl font-bold text-gray-900 truncate">
               Profile Information
             </h2>
           </div>
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="bg-primary hover:bg-primary-hover text-primary-foreground inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-md transition-all hover:scale-105 active:scale-95"
+              className="bg-primary hover:bg-primary-hover text-primary-foreground inline-flex items-center gap-1.5 md:gap-2 rounded-lg px-3 py-2 md:px-4 text-xs md:text-sm font-semibold shadow-md transition-all active:scale-95 md:hover:scale-105 flex-shrink-0"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
+                className="h-3.5 w-3.5 md:h-4 md:w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -68,14 +68,15 @@ export default function ProfileInformationCard({
                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                 />
               </svg>
-              Edit Profile
+              <span className="hidden sm:inline">Edit Profile</span>
+              <span className="sm:hidden">Edit</span>
             </button>
           )}
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-6 md:p-8">
+      <div className="p-4 md:p-6 lg:p-8">
         {isEditing ? (
           <ProfileForm
             user={user}

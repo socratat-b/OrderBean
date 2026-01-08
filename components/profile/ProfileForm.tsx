@@ -19,15 +19,15 @@ export default function ProfileForm({
   isLoading,
 }: ProfileFormProps) {
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
+    <form onSubmit={onSubmit} className="space-y-6 md:space-y-8">
       {/* Personal Information Section */}
       <div>
-        <h3 className="dark:text-muted-foreground mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase">
+        <h3 className="dark:text-muted-foreground mb-3 md:mb-4 text-xs md:text-sm font-bold tracking-wider text-gray-500 uppercase">
           Personal Information
         </h3>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2">
           <div>
-            <label className="dark:text-foreground mb-2 block text-sm font-semibold text-gray-700">
+            <label className="dark:text-foreground mb-1.5 md:mb-2 block text-sm font-semibold text-gray-700">
               Full Name <span className="text-red-500">*</span>
             </label>
             <input
@@ -36,23 +36,23 @@ export default function ProfileForm({
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="dark:border-border dark:bg-card dark:text-foreground dark:placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm transition-colors placeholder:text-gray-400 focus:ring-2 focus:outline-none"
+              className="dark:border-border dark:bg-card dark:text-foreground dark:placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 md:px-4 md:py-3 text-base text-gray-900 shadow-sm transition-colors placeholder:text-gray-400 focus:ring-2 focus:outline-none"
               placeholder="Juan Dela Cruz"
               required
               disabled={isLoading}
             />
           </div>
           <div>
-            <label className="dark:text-foreground mb-2 block text-sm font-semibold text-gray-700">
+            <label className="dark:text-foreground mb-1.5 md:mb-2 block text-sm font-semibold text-gray-700">
               Email Address
             </label>
             <input
               type="email"
               value={user.email}
-              className="dark:border-border dark:bg-muted dark:text-muted-foreground block w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-4 py-3 text-gray-500"
+              className="dark:border-border dark:bg-muted dark:text-muted-foreground block w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-3.5 py-2.5 md:px-4 md:py-3 text-base text-gray-500"
               disabled
             />
-            <p className="dark:text-muted-foreground mt-1 text-xs text-gray-500">
+            <p className="dark:text-muted-foreground mt-1 md:mt-1.5 text-xs text-gray-500">
               Email cannot be changed
             </p>
           </div>
@@ -61,11 +61,11 @@ export default function ProfileForm({
 
       {/* Contact Information Section */}
       <div>
-        <h3 className="dark:text-muted-foreground mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase">
+        <h3 className="dark:text-muted-foreground mb-3 md:mb-4 text-xs md:text-sm font-bold tracking-wider text-gray-500 uppercase">
           Contact Information
         </h3>
         <div>
-          <label className="dark:text-foreground mb-2 block text-sm font-semibold text-gray-700">
+          <label className="dark:text-foreground mb-1.5 md:mb-2 block text-sm font-semibold text-gray-700">
             Phone Number <span className="text-red-500">*</span>
           </label>
           <input
@@ -74,11 +74,11 @@ export default function ProfileForm({
             onChange={(e) =>
               setFormData({ ...formData, phone: e.target.value })
             }
-            className="dark:border-border dark:bg-card dark:text-foreground dark:placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm transition-colors placeholder:text-gray-400 focus:ring-2 focus:outline-none"
+            className="dark:border-border dark:bg-card dark:text-foreground dark:placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 md:px-4 md:py-3 text-base text-gray-900 shadow-sm transition-colors placeholder:text-gray-400 focus:ring-2 focus:outline-none"
             placeholder="09XX XXX XXXX"
             disabled={isLoading}
           />
-          <p className="dark:text-muted-foreground mt-1 text-xs text-gray-500">
+          <p className="dark:text-muted-foreground mt-1 md:mt-1.5 text-xs text-gray-500">
             Format: 09XXXXXXXXX or +639XXXXXXXXX
           </p>
         </div>
@@ -86,12 +86,12 @@ export default function ProfileForm({
 
       {/* Delivery Address Section */}
       <div>
-        <h3 className="dark:text-muted-foreground mb-4 text-sm font-bold tracking-wider text-gray-500 uppercase">
+        <h3 className="dark:text-muted-foreground mb-3 md:mb-4 text-xs md:text-sm font-bold tracking-wider text-gray-500 uppercase">
           Delivery Address (Guinobatan, Albay)
         </h3>
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           <div>
-            <label className="dark:text-foreground mb-2 block text-sm font-semibold text-gray-700">
+            <label className="dark:text-foreground mb-1.5 md:mb-2 block text-sm font-semibold text-gray-700">
               Barangay <span className="text-red-500">*</span>
             </label>
             <select
@@ -99,7 +99,7 @@ export default function ProfileForm({
               onChange={(e) =>
                 setFormData({ ...formData, barangay: e.target.value })
               }
-              className="dark:border-border dark:bg-card dark:text-foreground focus:border-primary focus:ring-primary/20 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm transition-colors focus:ring-2 focus:outline-none"
+              className="dark:border-border dark:bg-card dark:text-foreground focus:border-primary focus:ring-primary/20 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 md:px-4 md:py-3 text-base text-gray-900 shadow-sm transition-colors focus:ring-2 focus:outline-none"
               disabled={isLoading}
             >
               <option value="">Select your barangay...</option>
@@ -111,7 +111,7 @@ export default function ProfileForm({
             </select>
           </div>
           <div>
-            <label className="dark:text-foreground mb-2 block text-sm font-semibold text-gray-700">
+            <label className="dark:text-foreground mb-1.5 md:mb-2 block text-sm font-semibold text-gray-700">
               Street / Purok / Sitio <span className="text-red-500">*</span>
             </label>
             <input
@@ -120,13 +120,13 @@ export default function ProfileForm({
               onChange={(e) =>
                 setFormData({ ...formData, street: e.target.value })
               }
-              className="dark:border-border dark:bg-card dark:text-foreground dark:placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm transition-colors placeholder:text-gray-400 focus:ring-2 focus:outline-none"
+              className="dark:border-border dark:bg-card dark:text-foreground dark:placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 md:px-4 md:py-3 text-base text-gray-900 shadow-sm transition-colors placeholder:text-gray-400 focus:ring-2 focus:outline-none"
               placeholder="e.g., 123 Street Name, Purok 1"
               disabled={isLoading}
             />
           </div>
           <div>
-            <label className="dark:text-foreground mb-2 block text-sm font-semibold text-gray-700">
+            <label className="dark:text-foreground mb-1.5 md:mb-2 block text-sm font-semibold text-gray-700">
               Landmark{" "}
               <span className="dark:text-muted-foreground text-xs text-gray-500">
                 (Optional)
@@ -138,11 +138,11 @@ export default function ProfileForm({
               onChange={(e) =>
                 setFormData({ ...formData, landmark: e.target.value })
               }
-              className="dark:border-border dark:bg-card dark:text-foreground dark:placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 shadow-sm transition-colors placeholder:text-gray-400 focus:ring-2 focus:outline-none"
+              className="dark:border-border dark:bg-card dark:text-foreground dark:placeholder:text-muted-foreground focus:border-primary focus:ring-primary/20 block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 md:px-4 md:py-3 text-base text-gray-900 shadow-sm transition-colors placeholder:text-gray-400 focus:ring-2 focus:outline-none"
               placeholder="e.g., Near public market, beside church"
               disabled={isLoading}
             />
-            <p className="dark:text-muted-foreground mt-1 text-xs text-gray-500">
+            <p className="dark:text-muted-foreground mt-1 md:mt-1.5 text-xs text-gray-500">
               Help us locate you easier for delivery
             </p>
           </div>
@@ -150,11 +150,11 @@ export default function ProfileForm({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 pt-4">
+      <div className="flex flex-col sm:flex-row gap-3 pt-2 md:pt-4">
         <button
           type="submit"
           disabled={isLoading}
-          className="bg-primary hover:bg-primary-hover text-primary-foreground flex-1 rounded-lg px-6 py-3 text-sm font-semibold shadow-md transition-all hover:scale-[1.02] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+          className="bg-primary hover:bg-primary-hover text-primary-foreground flex-1 rounded-lg px-5 py-3 md:px-6 text-sm md:text-base font-semibold shadow-md transition-all active:scale-[0.98] md:hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
         >
           {isLoading ? (
             <span className="flex items-center justify-center gap-2">
@@ -188,7 +188,7 @@ export default function ProfileForm({
           type="button"
           onClick={onCancel}
           disabled={isLoading}
-          className="dark:border-border dark:bg-card dark:hover:bg-muted dark:text-foreground rounded-lg border-2 border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="dark:border-border dark:bg-card dark:hover:bg-muted dark:text-foreground rounded-lg border-2 border-gray-300 bg-white px-5 py-3 md:px-6 text-sm md:text-base font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1"
         >
           Cancel
         </button>
