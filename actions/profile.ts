@@ -1,11 +1,70 @@
 "use server";
 
+import { cache } from "react";
+import { unstable_cache, revalidatePath } from "next/cache";
 import { getSession } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import { revalidatePath } from "next/cache";
+
+// Helper function to fetch stats for a specific user
+// Cached with Next.js cache (5 minutes) and tagged for revalidation
+const getCachedProfileStats = (userId: string) =>
+  unstable_cache(
+    async () => {
+      // Use parallel queries for better performance
+      const [orderAggregates, completedCount, favoriteProductData] = await Promise.all([
+        // Get total orders and total spent using aggregation
+        prisma.order.aggregate({
+          where: { userId },
+          _count: true,
+          _sum: { total: true },
+        }),
+
+        // Get completed orders count
+        prisma.order.count({
+          where: {
+            userId,
+            status: "COMPLETED",
+          },
+        }),
+
+        // Get favorite product (most ordered) using raw SQL for efficiency
+        prisma.$queryRaw<Array<{ productId: string; productName: string; totalQuantity: bigint }>>`
+          SELECT
+            oi."productId",
+            p.name as "productName",
+            SUM(oi.quantity) as "totalQuantity"
+          FROM "OrderItem" oi
+          INNER JOIN "Order" o ON oi."orderId" = o.id
+          INNER JOIN "Product" p ON oi."productId" = p.id
+          WHERE o."userId" = ${userId}
+          GROUP BY oi."productId", p.name
+          ORDER BY "totalQuantity" DESC
+          LIMIT 1
+        `,
+      ]);
+
+      return {
+        totalOrders: orderAggregates._count,
+        totalSpent: orderAggregates._sum.total ?? 0,
+        completedOrders: completedCount,
+        favoriteProduct: favoriteProductData[0]
+          ? {
+              name: favoriteProductData[0].productName,
+              orderCount: Number(favoriteProductData[0].totalQuantity),
+            }
+          : null,
+      };
+    },
+    [`profile-stats-${userId}`],
+    {
+      revalidate: 300, // Cache for 5 minutes
+      tags: [`profile-stats-${userId}`],
+    }
+  )();
 
 // Server-side data fetching (for Server Components)
-export async function getProfileStatsServer() {
+// Wrapped with React.cache() to deduplicate calls within the same render
+export const getProfileStatsServer = cache(async () => {
   try {
     const session = await getSession();
     if (!session) {
@@ -17,62 +76,12 @@ export async function getProfileStatsServer() {
       return null;
     }
 
-    // Get user orders with items
-    const orders = await prisma.order.findMany({
-      where: {
-        userId: session.userId,
-      },
-      include: {
-        orderItems: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
-
-    // Calculate statistics
-    const totalOrders = orders.length;
-    const totalSpent = orders.reduce((sum, order) => sum + order.total, 0);
-    const completedOrders = orders.filter(
-      (order) => order.status === "COMPLETED"
-    ).length;
-
-    // Find favorite product (most ordered)
-    const productCounts: Record<string, { name: string; count: number }> = {};
-
-    orders.forEach((order) => {
-      order.orderItems.forEach((item) => {
-        const productId = item.productId;
-        const productName = item.product.name;
-
-        if (!productCounts[productId]) {
-          productCounts[productId] = { name: productName, count: 0 };
-        }
-        productCounts[productId].count += item.quantity;
-      });
-    });
-
-    const favoriteProduct = Object.values(productCounts).sort(
-      (a, b) => b.count - a.count
-    )[0];
-
-    return {
-      totalOrders,
-      totalSpent,
-      completedOrders,
-      favoriteProduct: favoriteProduct
-        ? {
-            name: favoriteProduct.name,
-            orderCount: favoriteProduct.count,
-          }
-        : null,
-    };
+    return await getCachedProfileStats(session.userId);
   } catch (error) {
     console.error("Failed to fetch profile stats:", error);
     return null;
   }
-}
+});
 
 interface UpdateProfileData {
   name?: string;

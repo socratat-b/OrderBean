@@ -1,23 +1,20 @@
 "use client";
 
 import { useToast } from "@/context/ToastContext";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { User, ProfileStats, ProfileFormData } from "@/types/profile";
+import { useState, useEffect, ReactNode } from "react";
+import { User, ProfileFormData } from "@/types/profile";
 import { validatePhone, isProfileComplete } from "@/utils/profileValidation";
 import ProfileWarningBanner from "@/components/profile/ProfileWarningBanner";
 import ProfileInformationCard from "@/components/profile/ProfileInformationCard";
-import ProfileStatsCard from "@/components/profile/ProfileStats";
 import { updateProfile } from "@/actions/profile";
 
 interface ProfileClientProps {
   user: User;
-  initialStats: ProfileStats | null;
+  children: ReactNode;
 }
 
-export default function ProfileClient({ user, initialStats }: ProfileClientProps) {
+export default function ProfileClient({ user, children }: ProfileClientProps) {
   const { addToast } = useToast();
-  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
 
   // Optimistic UI state - updates immediately on save
@@ -78,9 +75,6 @@ export default function ProfileClient({ user, initialStats }: ProfileClientProps
 
         addToast("Profile updated successfully!", "success");
         setIsEditing(false);
-
-        // Refresh server component data in background
-        router.refresh();
       }
     } catch {
       addToast("Failed to update profile", "error");
@@ -130,8 +124,8 @@ export default function ProfileClient({ user, initialStats }: ProfileClientProps
           isLoading={isLoading}
         />
 
-        {/* Statistics Card */}
-        <ProfileStatsCard stats={initialStats} isLoading={false} />
+        {/* Statistics Card - Streamed from Server */}
+        {children}
       </div>
     </div>
   );

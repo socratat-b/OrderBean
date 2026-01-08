@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { verifySession, getUser } from "@/lib/dal";
 import { redirect } from "next/navigation";
 import ProfileClient from "./ProfileClient";
-import { getProfileStatsServer } from "@/actions/profile";
+import ProfileStatsWrapper from "@/components/profile/ProfileStatsWrapper";
+import ProfileStatsSkeleton from "@/components/profile/ProfileStatsSkeleton";
 
 export default async function ProfilePage() {
   const session = await verifySession();
@@ -17,8 +19,11 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  // Fetch profile stats in Server Component (recommended pattern)
-  const stats = await getProfileStatsServer();
-
-  return <ProfileClient user={user} initialStats={stats} />;
+  return (
+    <ProfileClient user={user}>
+      <Suspense fallback={<ProfileStatsSkeleton />}>
+        <ProfileStatsWrapper />
+      </Suspense>
+    </ProfileClient>
+  );
 }

@@ -4,6 +4,7 @@
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import { redirect } from "next/navigation";
+import { revalidateTag } from "next/cache";
 
 export async function createOrder(items: { productId: string; quantity: number }[]) {
   const session = await verifySession();
@@ -56,6 +57,9 @@ export async function createOrder(items: { productId: string; quantity: number }
         },
       },
     });
+
+    // Invalidate profile stats cache for this user
+    revalidateTag(`profile-stats-${session.userId}`);
 
     return { success: true, order };
   } catch (error) {
