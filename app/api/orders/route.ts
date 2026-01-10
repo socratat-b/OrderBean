@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     // revalidateTag(`profile-stats-${userId}`);
 
     // Emit event for real-time updates
-    orderEvents.emit(ORDER_EVENTS.ORDER_CREATED, {
+    await orderEvents.emit(ORDER_EVENTS.ORDER_CREATED, {
       orderId: order.id,
       userId: order.userId,
       status: order.status,

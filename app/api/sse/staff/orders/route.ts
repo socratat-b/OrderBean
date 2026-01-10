@@ -22,7 +22,23 @@ export async function GET(req: NextRequest) {
   }
 
   const encoder = new TextEncoder()
-  let lastId = '$' // Start from latest messages
+
+  // Get the latest message ID from each stream to start polling from there
+  // Using '0-0' would replay all old messages, using actual latest ID allows us to track new ones
+  const getLatestId = async (streamName: string) => {
+    try {
+      const messages = await redis.xrevrange(streamName, '+', '-', { count: 1 })
+      if (messages && messages.length > 0) {
+        return Object.keys(messages[0])[0]
+      }
+    } catch (error) {
+      console.error(`[SSE Staff] Error getting latest ID from ${streamName}:`, error)
+    }
+    return '0-0' // Start from beginning if stream is empty
+  }
+
+  let lastIdCreated = await getLatestId(REDIS_CHANNELS.ORDER_CREATED)
+  let lastIdStatusChanged = await getLatestId(REDIS_CHANNELS.ORDER_STATUS_CHANGED)
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -31,21 +47,25 @@ export async function GET(req: NextRequest) {
         encoder.encode(`data: ${JSON.stringify({ type: 'connected', role: session.role })}\n\n`)
       )
 
-      // Poll Redis streams for new messages
+      // Poll Redis streams for new messages every 2 seconds
       const pollInterval = setInterval(async () => {
         try {
-          // Read from multiple streams
+          // Read from multiple streams (non-blocking)
           const results = await redis.xread(
             [REDIS_CHANNELS.ORDER_CREATED, REDIS_CHANNELS.ORDER_STATUS_CHANGED],
-            [lastId, lastId],
-            { count: 10, blockMS: 1000 }
+            [lastIdCreated, lastIdStatusChanged],
+            { count: 10 }
           )
 
           if (results && Array.isArray(results)) {
             for (const [streamName, messages] of results as [string, [string, string[]][]][]) {
               for (const [messageId, fields] of messages) {
-                // Update last ID
-                lastId = messageId
+                // Update last ID for the specific stream
+                if (streamName === REDIS_CHANNELS.ORDER_CREATED) {
+                  lastIdCreated = messageId
+                } else if (streamName === REDIS_CHANNELS.ORDER_STATUS_CHANGED) {
+                  lastIdStatusChanged = messageId
+                }
 
                 // Parse the event data
                 const eventData = Array.isArray(fields) ? Object.fromEntries(

@@ -32,6 +32,7 @@ npm run seed:owner            # Create test owner user
 - **Framework**: Next.js 16 (App Router) + React 19
 - **Database**: PostgreSQL with Prisma ORM v7.1.0
 - **Authentication**: Next.js Server Actions with jose JWT library, httpOnly cookies (7-day expiration)
+- **Real-Time**: Server-Sent Events (SSE) + Upstash Redis (for cross-instance messaging)
 - **Payment Gateway**: PayMongo (GCash, PayMaya, Credit/Debit cards)
 - **Styling**: Tailwind CSS 4 with PostCSS
 - **Password Hashing**: bcryptjs
@@ -283,12 +284,18 @@ PAYMONGO_SECRET_KEY="sk_test_..." # Use sk_live_... for production
 PAYMONGO_PUBLIC_KEY="pk_test_..." # Use pk_live_... for production
 NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY="pk_test_..." # For demo banner detection
 NEXT_PUBLIC_APP_URL="http://localhost:3000" # Update for production
+
+# Upstash Redis (for real-time SSE across serverless instances)
+UPSTASH_REDIS_REST_URL="https://your-redis-instance.upstash.io"
+UPSTASH_REDIS_REST_TOKEN="your-redis-token"
 ```
 
 **Important Notes:**
 - Use **TEST keys** (`sk_test_...` / `pk_test_...`) for development and demo
 - Use **LIVE keys** (`sk_live_...` / `pk_live_...`) only after PayMongo business verification
 - Demo mode banner automatically shows when using test keys
+- **Upstash Redis** is required for real-time updates to work across Vercel serverless instances
+- Sign up at [upstash.com](https://upstash.com) (free tier: 10k commands/day) to get Redis credentials
 - For Vercel deployment, add all variables in: Settings → Environment Variables
 
 ### Common Tasks
@@ -486,7 +493,7 @@ Use seed scripts to create test users:
 
 **Goal**: Owners can monitor business and manage inventory.
 
-### ✅ PHASE 7: REAL-TIME FEATURES - COMPLETED (SSE Implementation)
+### ✅ PHASE 7: REAL-TIME FEATURES - COMPLETED (SSE + Redis Implementation)
 
 ✅ Server-Sent Events (SSE) implementation
 ✅ Event emitter system (`lib/events.ts`)
@@ -495,48 +502,60 @@ Use seed scripts to create test users:
 ✅ Real-time notifications for staff (live updates indicator)
 ✅ Live order status changes for all roles
 ✅ Custom React hooks (`useOrderSSE`, `useStaffOrdersSSE`, `useOwnerOrdersSSE`)
+✅ **Upstash Redis integration for cross-instance real-time updates**
 
-**Goal**: Instant updates without page refresh.
+**Goal**: Instant updates without page refresh ✅ **ACHIEVED**
 
-**⚠️ IMPORTANT - VERCEL DEPLOYMENT NOTE:**
-The current SSE implementation uses **in-memory events** which works perfectly for:
-- Development environments
-- Single-server deployments (Railway, Render, traditional VPS)
+**✅ PRODUCTION-READY - Upstash Redis Integration:**
 
-For **Vercel/Serverless deployments**, real-time updates are NOT reliable because:
-- Each API route runs in a separate serverless instance
-- In-memory events don't propagate across instances
-- Events emitted in one instance won't reach SSE connections in other instances
+The real-time system now uses **Redis Streams** for cross-instance communication, which works perfectly for:
+- Development environments (falls back to in-memory)
+- Production deployments (Vercel, Railway, any serverless platform)
+- Multi-instance deployments (true real-time across all instances)
 
-**TODO - Fix Real-Time for Production (Currently has delay):**
+**Implementation Details:**
+- **Architecture:** SSE + Redis Streams
+- **Library:** `@upstash/redis` (HTTP-based, serverless-friendly)
+- **Redis Client:** `lib/redis.ts` - Handles publishing events to streams
+- **Event System:** `lib/events.ts` - Publishes to both in-memory (dev) and Redis (production)
+- **SSE Routes:** Poll Redis Streams every 2 seconds for new messages
+- **Data Flow:** Order created → Redis Stream → All SSE connections receive update
+- **Performance:** ~2 second latency (configurable polling interval)
+- **Cost:** Free tier (10k commands/day, plenty for coffee shop usage)
 
-✅ **RECOMMENDED: SSE + Upstash Redis** (Keep SSE, add Redis for cross-instance events)
-- **Why:** Minimal code change, keeps current SSE architecture, no vendor lock-in
-- **Setup Steps:**
-  1. Sign up at [upstash.com](https://upstash.com) (free tier: 10k commands/day)
-  2. Create Redis database, copy `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
-  3. Install: `npm install @upstash/redis`
-  4. Replace `lib/events.ts` with Redis pub/sub implementation
-  5. Update order APIs to publish to Redis instead of in-memory
-  6. SSE routes subscribe to Redis channels
-- **Result:** True real-time across all Vercel instances, ~0ms delay
-- **Cost:** Free (10k commands/day plenty for coffee shop)
+**How It Works:**
+1. When an order is created/updated, event is published to Redis Stream via `redis.xadd()`
+2. SSE connections initialize by getting the latest message ID from each stream via `redis.xrevrange()`
+3. Each connection polls Redis Streams every 2 seconds using `redis.xread()` with actual message IDs
+4. New messages are parsed and sent to connected clients via Server-Sent Events
+5. Streams are trimmed to last 100 messages to prevent memory growth
 
-**Alternative Options:**
-- [ ] **Pusher** (Replace SSE entirely with managed WebSocket service)
-  - Pros: Even simpler (5-min setup), no infrastructure to manage
-  - Cons: Vendor lock-in, need to replace all SSE code
-  - Free tier: 100 connections, 200k messages/day
-  - Setup: [pusher.com](https://pusher.com) → Install `pusher-js` → Replace SSE hooks
+**Key Technical Detail - Redis xread:**
+- ❌ **Don't use `'$'` as lastId** - It means "only new messages from RIGHT NOW" and won't track properly across polls
+- ✅ **Use actual message IDs** - Get latest ID via `xrevrange()`, then track each message's ID as you process it
+- This ensures the polling correctly picks up all new messages between poll intervals
 
-- [ ] **Simple Polling** (Remove SSE, just refetch every 5 seconds)
-  - Pros: Zero dependencies, works everywhere, ultra-simple
-  - Cons: 5-10 second delay, more API requests
-  - Good enough for coffee shop use case if real-time isn't critical
+**Setup for New Deployments:**
+1. Sign up at [upstash.com](https://upstash.com) - Free tier available
+2. Create Redis database
+3. Copy credentials: `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
+4. Add to Vercel environment variables
+5. Deploy - real-time will work automatically!
+
+**Why This Solution:**
+- ✅ No vendor lock-in (Redis is industry standard)
+- ✅ Minimal code changes (keeps existing SSE architecture)
+- ✅ Works on all serverless platforms (HTTP-based, no TCP)
+- ✅ Free tier sufficient for most use cases
+- ✅ Battle-tested Redis Streams technology
 
 **Current Status:**
-- ✅ Deployed to production (works but has delay due to serverless limitation)
-- ⏳ Next: Implement SSE + Redis for instant updates (10-min task)
+- ✅ **PRODUCTION-READY:** Real-time updates work across all Vercel instances
+- ✅ Redis Streams implementation complete
+- ✅ All SSE routes updated (staff, owner, customer routes)
+- ✅ Fixed Redis xread polling issue (using actual message IDs instead of '$')
+- ✅ Integration tests passing (Playwright E2E tests verify real-time updates)
+- ✅ Tested and verified working in development and production
 
 ### ✅ PHASE 8A: PAYMENT INTEGRATION - COMPLETED
 
@@ -684,22 +703,22 @@ For **Vercel/Serverless deployments**, real-time updates are NOT reliable becaus
 
 ### Current Status: 🎯
 
-**✅ COMPLETED: 90%**
+**✅ COMPLETED: 100%**
 - Backend APIs (100%)
 - Auth UI (100%)
 - Menu Page (100%)
 - Cart & Checkout (100%)
 - Staff Dashboard UI (100%)
 - Owner Dashboard UI (100%)
-- Real-Time Features SSE (100% - needs Redis for Vercel production)
+- **Real-Time Features SSE + Redis (100%) - Production Ready!**
 - **Payment Integration (100%) - PayMongo GCash/PayMaya**
 
 **🚀 DEPLOYED:**
 - Live on Vercel with test mode
 - Demo mode banner active
 - Full payment flow functional
+- **Real-time updates working across all instances with Upstash Redis!**
 
 **⏳ NEXT UP:**
 - Add live PayMongo keys (requires business verification)
-- Implement SSE + Redis for Vercel real-time updates
-- Optional: Email notifications, image uploads
+- Optional: Email notifications, image uploads, loading skeletons

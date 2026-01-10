@@ -36,7 +36,21 @@ export async function GET(
   }
 
   const encoder = new TextEncoder()
-  let lastId = '$' // Start from latest messages
+
+  // Get the latest message ID from stream to start polling from there
+  const getLatestId = async (streamName: string) => {
+    try {
+      const messages = await redis.xrevrange(streamName, '+', '-', { count: 1 })
+      if (messages && messages.length > 0) {
+        return Object.keys(messages[0])[0]
+      }
+    } catch (error) {
+      console.error(`[SSE Order] Error getting latest ID from ${streamName}:`, error)
+    }
+    return '0-0'
+  }
+
+  let lastId = await getLatestId(REDIS_CHANNELS.ORDER_STATUS_CHANGED)
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -52,7 +66,7 @@ export async function GET(
           const results = await redis.xread(
             [REDIS_CHANNELS.ORDER_STATUS_CHANGED],
             [lastId],
-            { count: 10, blockMS: 1000 }
+            { count: 10 }
           )
 
           if (results && Array.isArray(results)) {

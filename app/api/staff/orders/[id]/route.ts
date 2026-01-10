@@ -86,7 +86,7 @@ export async function PATCH(
     revalidatePath("/orders");
 
     // Emit event for real-time updates
-    orderEvents.emit(ORDER_EVENTS.ORDER_STATUS_CHANGED, {
+    await orderEvents.emit(ORDER_EVENTS.ORDER_STATUS_CHANGED, {
       orderId: updatedOrder.id,
       userId: updatedOrder.userId,
       status: updatedOrder.status,

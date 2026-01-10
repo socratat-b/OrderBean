@@ -39,16 +39,42 @@ export default function StaffDashboard() {
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // Define fetchOrders with useCallback to prevent stale closures
+  const fetchOrders = useCallback(async (showLoading = false) => {
+    try {
+      if (showLoading) {
+        setInitialLoading(true);
+      }
+      const response = await fetch("/api/staff/orders");
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error("Access denied. Staff role required.");
+        }
+        throw new Error("Failed to fetch orders");
+      }
+
+      const data = await response.json();
+      setOrders(data.orders);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      if (showLoading) {
+        setInitialLoading(false);
+      }
+    }
+  }, []); // Empty deps since we only use setters which are stable
+
   // Real-time SSE callbacks
   const handleOrderCreated = useCallback(() => {
-    // Refetch orders when a new order is created
+    console.log('[Staff Page] Order created event received, refetching orders...');
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   const handleOrderUpdated = useCallback(() => {
-    // Refetch orders when an order is updated
+    console.log('[Staff Page] Order updated event received, refetching orders...');
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   // Subscribe to real-time order updates
   const { isConnected, error: sseError } = useStaffOrdersSSE(
@@ -58,7 +84,7 @@ export default function StaffDashboard() {
 
   useEffect(() => {
     fetchOrders(true);
-  }, []);
+  }, [fetchOrders]);
 
   useEffect(() => {
     // Filter orders based on selected status
@@ -86,31 +112,6 @@ export default function StaffDashboard() {
       document.removeEventListener('click', handleClickOutside);
     };
   }, [isDropdownOpen]);
-
-  async function fetchOrders(showLoading = false) {
-    try {
-      if (showLoading) {
-        setInitialLoading(true);
-      }
-      const response = await fetch("/api/staff/orders");
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error("Access denied. Staff role required.");
-        }
-        throw new Error("Failed to fetch orders");
-      }
-
-      const data = await response.json();
-      setOrders(data.orders);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      if (showLoading) {
-        setInitialLoading(false);
-      }
-    }
-  }
 
   async function updateOrderStatus(orderId: string, newStatus: Order["status"]) {
     try {
