@@ -1,10 +1,11 @@
 /**
- * Simple Event Emitter for broadcasting order updates via SSE
+ * Event Emitter for broadcasting order updates via SSE
  *
- * Note: This is an in-memory implementation suitable for development
- * and single-server deployments. For serverless/multi-instance production
- * (e.g., Vercel), consider using Redis pub/sub or a polling approach.
+ * Now uses Redis pub/sub for cross-instance communication on Vercel.
+ * Falls back to in-memory for development/single-server deployments.
  */
+
+import { publishOrderEvent, REDIS_CHANNELS } from './redis'
 
 type EventCallback = (data: any) => void
 
@@ -12,7 +13,7 @@ class EventEmitter {
   private events: Map<string, Set<EventCallback>> = new Map()
 
   /**
-   * Subscribe to an event
+   * Subscribe to an event (in-memory only, for local development)
    */
   on(event: string, callback: EventCallback) {
     if (!this.events.has(event)) {
@@ -33,8 +34,10 @@ class EventEmitter {
 
   /**
    * Emit an event to all subscribers
+   * Now publishes to Redis for cross-instance communication
    */
-  emit(event: string, data: any) {
+  async emit(event: string, data: any) {
+    // Emit to in-memory listeners (for local development)
     const callbacks = this.events.get(event)
     if (callbacks) {
       callbacks.forEach((callback) => {
@@ -44,6 +47,19 @@ class EventEmitter {
           console.error(`Error in event callback for ${event}:`, error)
         }
       })
+    }
+
+    // Publish to Redis for cross-instance communication (Vercel)
+    // Map event names to Redis channels
+    const channelMap: Record<string, string> = {
+      [ORDER_EVENTS.ORDER_CREATED]: REDIS_CHANNELS.ORDER_CREATED,
+      [ORDER_EVENTS.ORDER_UPDATED]: REDIS_CHANNELS.ORDER_UPDATED,
+      [ORDER_EVENTS.ORDER_STATUS_CHANGED]: REDIS_CHANNELS.ORDER_STATUS_CHANGED,
+    }
+
+    const redisChannel = channelMap[event]
+    if (redisChannel) {
+      await publishOrderEvent(redisChannel, data)
     }
   }
 

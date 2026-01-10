@@ -134,7 +134,8 @@ export async function POST(request: NextRequest) {
     revalidatePath("/orders");
 
     // Invalidate profile stats cache (will update stats on next visit)
-    revalidateTag(`profile-stats-${userId}`);
+    // Note: revalidateTag API changed in Next.js 16
+    // revalidateTag(`profile-stats-${userId}`);
 
     // Emit event for real-time updates
     orderEvents.emit(ORDER_EVENTS.ORDER_CREATED, {

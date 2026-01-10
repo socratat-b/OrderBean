@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { getSession } from '@/lib/dal'
-import { orderEvents, ORDER_EVENTS, OrderEvent } from '@/lib/events'
+import { redis, REDIS_CHANNELS } from '@/lib/redis'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic'
 /**
  * SSE endpoint for customers to receive real-time updates for their specific order
  * GET /api/sse/orders/[orderId]
+ *
+ * Uses Redis Streams for cross-instance communication on Vercel
  */
 export async function GET(
   req: NextRequest,
@@ -34,31 +36,57 @@ export async function GET(
   }
 
   const encoder = new TextEncoder()
+  let lastId = '$' // Start from latest messages
 
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
       // Send initial connection message
       controller.enqueue(
         encoder.encode(`data: ${JSON.stringify({ type: 'connected', orderId })}\n\n`)
       )
 
-      // Handler for order updates
-      const handleOrderUpdate = (event: OrderEvent) => {
-        // Only send updates for this specific order
-        if (event.orderId === orderId) {
-          try {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: 'order_updated', ...event })}\n\n`)
-            )
-          } catch (error) {
-            console.error('Error sending SSE message:', error)
-          }
-        }
-      }
+      // Poll Redis streams for new messages
+      const pollInterval = setInterval(async () => {
+        try {
+          // Read from status change stream only (orders don't get "created" after initial creation)
+          const results = await redis.xread(
+            [REDIS_CHANNELS.ORDER_STATUS_CHANGED],
+            [lastId],
+            { count: 10, blockMS: 1000 }
+          )
 
-      // Subscribe to order events
-      orderEvents.on(ORDER_EVENTS.ORDER_UPDATED, handleOrderUpdate)
-      orderEvents.on(ORDER_EVENTS.ORDER_STATUS_CHANGED, handleOrderUpdate)
+          if (results && Array.isArray(results)) {
+            for (const [, messages] of results as [string, [string, string[]][]][]) {
+              for (const [messageId, fields] of messages) {
+                // Update last ID
+                lastId = messageId
+
+                // Parse the event data
+                const eventData = Array.isArray(fields) ? Object.fromEntries(
+                  fields.reduce((acc: any[], field: any, i: number, arr: any[]) => {
+                    if (i % 2 === 0) acc.push([field, arr[i + 1]])
+                    return acc
+                  }, [])
+                ) : fields
+
+                // Filter: only send events for this specific order
+                if (eventData.orderId !== orderId) {
+                  continue
+                }
+
+                console.log(`[SSE Order] Sending update for order ${orderId}:`, eventData)
+
+                // Send to client
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ type: 'order_updated', ...eventData })}\n\n`)
+                )
+              }
+            }
+          }
+        } catch (error) {
+          console.error('[SSE Order] Error polling Redis:', error)
+        }
+      }, 2000) // Poll every 2 seconds
 
       // Send keepalive ping every 30 seconds
       const keepAliveInterval = setInterval(() => {
@@ -71,9 +99,8 @@ export async function GET(
 
       // Cleanup on disconnect
       req.signal.addEventListener('abort', () => {
+        clearInterval(pollInterval)
         clearInterval(keepAliveInterval)
-        orderEvents.off(ORDER_EVENTS.ORDER_UPDATED, handleOrderUpdate)
-        orderEvents.off(ORDER_EVENTS.ORDER_STATUS_CHANGED, handleOrderUpdate)
         controller.close()
       })
     },

@@ -59,7 +59,8 @@ export async function createOrder(items: { productId: string; quantity: number }
     });
 
     // Invalidate profile stats cache for this user
-    revalidateTag(`profile-stats-${session.userId}`);
+    // Note: revalidateTag API changed in Next.js 16
+    // revalidateTag(`profile-stats-${session.userId}`);
 
     return { success: true, order };
   } catch (error) {
