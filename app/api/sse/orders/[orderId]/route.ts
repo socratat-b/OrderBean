@@ -40,9 +40,12 @@ export async function GET(
   // Get the latest message ID from stream to start polling from there
   const getLatestId = async (streamName: string) => {
     try {
-      const messages = await redis.xrevrange(streamName, '+', '-', { count: 1 })
-      if (messages && messages.length > 0) {
-        return Object.keys(messages[0])[0]
+      const messages = await redis.xrevrange(streamName, '+', '-', 1)
+      if (messages) {
+        const keys = Object.keys(messages)
+        if (keys.length > 0) {
+          return keys[0]
+        }
       }
     } catch (error) {
       console.error(`[SSE Order] Error getting latest ID from ${streamName}:`, error)
