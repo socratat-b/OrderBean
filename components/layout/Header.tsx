@@ -101,32 +101,14 @@ export default function Header({ user }: { user: User }) {
                         </Link>
                       )}
 
-                      {/* Staff Dashboard Link - Only for staff */}
-                      {user.role === "STAFF" && (
-                        <Link
-                          href="/staff"
-                          className="text-sm font-semibold text-foreground transition-colors hover:text-primary"
-                        >
-                          Staff
-                        </Link>
-                      )}
-
                       {/* Owner Links - Only for owner */}
                       {user.role === "OWNER" && (
-                        <>
-                          <Link
-                            href="/owner"
-                            className="text-sm font-semibold text-foreground transition-colors hover:text-primary"
-                          >
-                            Owner
-                          </Link>
-                          <Link
-                            href="/staff"
-                            className="text-sm font-semibold text-foreground transition-colors hover:text-primary"
-                          >
-                            Staff
-                          </Link>
-                        </>
+                        <Link
+                          href="/owner"
+                          className="text-sm font-semibold text-foreground transition-colors hover:text-primary"
+                        >
+                          Owner
+                        </Link>
                       )}
 
                       {/* Separator */}

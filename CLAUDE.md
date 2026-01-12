@@ -618,35 +618,50 @@ The real-time system now uses **Redis Streams** for cross-instance communication
 
 ---
 
-## Staff-Specific Features (Future Enhancements)
+## Staff-Specific Features
 
 **Current Staff Capabilities:**
-- View all orders in real-time
-- Update order status (PENDING → PREPARING → READY → COMPLETED/CANCELLED)
-- Filter orders by status
-- See live updates indicator
-- Staff-only navigation (no menu/cart/orders access)
+- ✅ View all orders in real-time (SSE + Redis)
+- ✅ Update order status (PENDING → PREPARING → READY → COMPLETED/CANCELLED)
+- ✅ Filter orders by status (ALL, PENDING, PREPARING, READY, COMPLETED, CANCELLED)
+- ✅ **Search functionality** - Search by customer name, email, order ID, or product name
+- ✅ **Real-time notifications** - Sound alerts and browser notifications for new orders
+- ✅ **New orders badge** - Visual counter showing number of new orders
+- ✅ **Live updates indicator** - Green pulsing dot shows real-time connection status
+- ✅ **Notification toggle** - Enable/disable browser notifications with one click
+- ✅ Clean navigation (no redundant "Staff" links)
 
-**Potential Staff Features to Add:**
+### ✅ **Implemented Features:**
 
-### 📊 **Dashboard Enhancements**
+#### 🔔 **Notifications System**
+- ✅ **Sound notifications** - Web Audio API plays beep when new orders arrive
+- ✅ **Browser notifications** - Desktop notifications with customer name and order total
+- ✅ **Visual badge** - "X new" counter shows unviewed orders
+- ✅ **Permission management** - Easy notification toggle button in header
+- ✅ **Auto-dismiss** - Notifications close after 5 seconds
+- ✅ **Click-to-focus** - Clicking notification brings tab to focus
+
+#### 🔍 **Search & Filtering**
+- ✅ **Multi-field search** - Search across customer name, email, order ID, and product names
+- ✅ **Real-time filtering** - Results update as you type
+- ✅ **Combined filters** - Search works with status filters
+- ✅ **Clear button** - Quick reset of search query
+- ✅ **Empty state** - Helpful messages when no results found
+- ✅ **Case-insensitive** - Matches regardless of capitalization
+
+### 🎯 **Future Enhancements:**
+
+#### 📊 **Dashboard Enhancements**
 1. **Daily Summary Stats**
    - Total orders today
    - Revenue today
    - Average order value
    - Orders by hour chart
 
-2. **Order Search & Filters**
-   - Search by customer name/email
-   - Search by order ID
+2. **Advanced Filters**
    - Filter by date range (today, this week, custom)
    - Filter by time (morning, afternoon, evening)
-
-### 🔔 **Notifications & Alerts**
-3. **Sound Notifications**
-   - Play sound when new order arrives
-   - Visual badge counter for pending orders
-   - Browser notifications (requestPermission)
+   - Filter by order total range
 
 4. **Order Timer**
    - Show "time since order placed" on each order card

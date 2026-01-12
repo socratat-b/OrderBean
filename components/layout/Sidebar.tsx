@@ -216,33 +216,6 @@ export default function SideBar({ isOpen, onClose, user }: SideBarProps) {
                 </li>
               )}
 
-              {/* Staff Navigation */}
-              {user && user.role === "STAFF" && (
-                <li>
-                  <Link
-                    href="/staff"
-                    onClick={onClose}
-                    className="flex items-center gap-3 rounded-lg bg-accent bg-opacity-10 px-4 py-3 text-base font-semibold text-foreground transition-colors hover:bg-muted"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                      className="h-5 w-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 5.25m8.5-5.25 1 5.25m-9.75 0h10.5a2.25 2.25 0 0 0 2.25-2.25v-1.5a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v1.5A2.25 2.25 0 0 0 6.75 21Z"
-                      />
-                    </svg>
-                    Staff Dashboard
-                  </Link>
-                </li>
-              )}
-
               {/* Owner Navigation */}
               {user && user.role === "OWNER" && (
                 <>
@@ -267,29 +240,6 @@ export default function SideBar({ isOpen, onClose, user }: SideBarProps) {
                         />
                       </svg>
                       Owner Dashboard
-                    </Link>
-                  </li>
-                  <li>
-                    <Link
-                      href="/staff"
-                      onClick={onClose}
-                      className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-semibold text-foreground transition-colors hover:bg-muted"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={2}
-                        stroke="currentColor"
-                        className="h-5 w-5"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 5.25m8.5-5.25 1 5.25m-9.75 0h10.5a2.25 2.25 0 0 0 2.25-2.25v-1.5a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v1.5A2.25 2.25 0 0 0 6.75 21Z"
-                        />
-                      </svg>
-                      Staff Dashboard
                     </Link>
                   </li>
                 </>

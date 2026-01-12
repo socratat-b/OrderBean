@@ -41,7 +41,12 @@ This project uses a comprehensive testing stack for Next.js 16 + React 19:
 ```
 order-bean/
 ├── e2e/                          # Playwright E2E tests
-│   └── auth.spec.ts              # Authentication flow tests
+│   ├── auth.spec.ts              # Authentication flow tests
+│   ├── staff-realtime-simple.spec.ts  # Real-time order updates (SSE + Redis)
+│   ├── staff-search-functionality.spec.ts  # Search functionality (comprehensive)
+│   ├── staff-search-bug-fix.spec.ts  # Bug fix verification for filter counts
+│   ├── debug-sse-redis.spec.ts   # SSE + Redis connection debugging
+│   └── README.md                 # E2E tests documentation
 ├── __tests__/
 │   ├── integration/              # Integration tests (Server Actions, API routes)
 │   │   └── auth.test.ts          # Auth Server Actions tests
@@ -106,6 +111,36 @@ pnpm test:e2e e2e/auth.spec.ts
 # Playwright - Run tests matching pattern
 pnpm test:e2e --grep "should register"
 ```
+
+### Staff Dashboard Tests
+
+The staff dashboard has comprehensive E2E tests covering real-time updates and search functionality:
+
+```bash
+# Real-time SSE + Redis updates test
+pnpm exec playwright test e2e/staff-realtime-simple.spec.ts --project=chromium
+
+# Search functionality comprehensive tests
+pnpm exec playwright test e2e/staff-search-functionality.spec.ts --project=chromium
+
+# Bug fix verification for filter counts
+pnpm exec playwright test e2e/staff-search-bug-fix.spec.ts --project=chromium
+
+# SSE + Redis connection debugging
+pnpm exec playwright test e2e/debug-sse-redis.spec.ts --project=chromium
+```
+
+**What these tests verify:**
+- ✅ Real-time order updates via SSE + Redis Streams
+- ✅ Multi-field search (customer name, email, order ID, product name)
+- ✅ Filter counts reflect search results correctly
+- ✅ Search + status filter combinations work
+- ✅ Clear search functionality
+- ✅ Empty state handling
+
+**Test Accounts:**
+- Staff: `staff@coffee.com` / `staff123`
+- Customer: `bedisscottandrew3@gmail.com` / `Tatadmin26@`
 
 ## Writing Tests
 
@@ -375,6 +410,13 @@ jobs:
 
 **Problem:** `browserType.launch: Executable doesn't exist`
 - **Solution:** Run `npx playwright install chromium`
+
+**Problem:** `Test timeout exceeded while running "beforeEach" hook` (Staff tests)
+- **Solution:**
+  - Remove `await page.waitForLoadState('networkidle')` from staff tests (SSE keeps connection open)
+  - Use simpler waits: `await page.waitForSelector('text=Customer Orders')`
+  - Increase timeout for SSE-heavy pages: `{ timeout: 15000 }`
+  - The `staff-search-bug-fix.spec.ts` test is the recommended version (optimized for SSE)
 
 ### Database Issues
 
