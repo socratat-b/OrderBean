@@ -2,8 +2,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
+import { useEffect, useState, useCallback, Suspense, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useOwnerOrdersSSE } from "@/hooks/useOwnerOrdersSSE";
+import DateRangePicker from "@/components/DateRangePicker";
+import RevenueChart from "@/components/charts/RevenueChart";
+import ExportButton from "@/components/ExportButton";
 
 interface OrdersByStatus {
   status: string;
@@ -45,19 +50,30 @@ interface RecentOrder {
   orderItems: OrderItem[];
 }
 
+interface RevenueByDay {
+  date: string;
+  revenue: number;
+  orderCount: number;
+}
+
 interface Analytics {
   totalOrders: number;
   totalRevenue: number;
+  ordersChange?: number;
+  revenueChange?: number;
   ordersByStatus: OrdersByStatus[];
   popularProducts: PopularProduct[];
   recentOrders: RecentOrder[];
+  revenueByDay?: RevenueByDay[];
 }
 
-export default function OwnerDashboard() {
+function OwnerDashboardContent() {
+  const searchParams = useSearchParams();
+
   // Check if we have cached data
   const getCachedAnalytics = () => {
-    if (typeof window === 'undefined') return null;
-    const cached = sessionStorage.getItem('owner_analytics');
+    if (typeof window === "undefined") return null;
+    const cached = sessionStorage.getItem("owner_analytics");
     if (cached) {
       try {
         return JSON.parse(cached);
@@ -70,34 +86,24 @@ export default function OwnerDashboard() {
 
   const cachedAnalytics = getCachedAnalytics();
 
+  // Extract date params once
+  const startDateParam = searchParams.get("startDate");
+  const endDateParam = searchParams.get("endDate");
+
   const [analytics, setAnalytics] = useState<Analytics | null>(cachedAnalytics);
   const [initialLoading, setInitialLoading] = useState(!cachedAnalytics);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [mounted, setMounted] = useState(false);
+  const hasFetchedRef = useRef(false);
 
-  // Real-time SSE callbacks
-  const handleOrderCreated = useCallback(() => {
-    // Refetch analytics when a new order is created
-    fetchAnalytics();
-  }, []);
-
-  const handleOrderUpdated = useCallback(() => {
-    // Refetch analytics when an order is updated
-    fetchAnalytics();
-  }, []);
-
-  // Subscribe to real-time order updates
-  const { isConnected, error: sseError } = useOwnerOrdersSSE(
-    handleOrderCreated,
-    handleOrderUpdated
-  );
-
+  // Prevent hydration mismatch by only showing content after mount
   useEffect(() => {
-    // Only show initial loading if we don't have cached data
-    fetchAnalytics(!cachedAnalytics);
+    setMounted(true);
   }, []);
 
-  async function fetchAnalytics(isInitial = false) {
+  // Fetch analytics function with useCallback to stabilize dependencies
+  const fetchAnalytics = useCallback(async (isInitial = false) => {
     try {
       if (isInitial) {
         setInitialLoading(true);
@@ -105,7 +111,13 @@ export default function OwnerDashboard() {
         setRefreshing(true);
       }
 
-      const response = await fetch("/api/owner/analytics", {
+      // Build URL with date parameters
+      let url = "/api/owner/analytics";
+      if (startDateParam && endDateParam) {
+        url += `?startDate=${startDateParam}&endDate=${endDateParam}`;
+      }
+
+      const response = await fetch(url, {
         cache: "no-store",
       });
 
@@ -120,8 +132,11 @@ export default function OwnerDashboard() {
       setAnalytics(data.analytics);
 
       // Cache the data in sessionStorage
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('owner_analytics', JSON.stringify(data.analytics));
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(
+          "owner_analytics",
+          JSON.stringify(data.analytics),
+        );
       }
 
       setError(""); // Clear any previous errors
@@ -131,7 +146,36 @@ export default function OwnerDashboard() {
       setInitialLoading(false);
       setRefreshing(false);
     }
-  }
+  }, [startDateParam, endDateParam]);
+
+  // Real-time SSE callbacks
+  const handleOrderCreated = useCallback(() => {
+    // Refetch analytics when a new order is created
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  const handleOrderUpdated = useCallback(() => {
+    // Refetch analytics when an order is updated
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  // Subscribe to real-time order updates
+  const { isConnected } = useOwnerOrdersSSE(
+    handleOrderCreated,
+    handleOrderUpdated,
+  );
+
+  // Fetch analytics when date params change
+  useEffect(() => {
+    // Only fetch if we haven't fetched yet, or if date params changed
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchAnalytics(!cachedAnalytics);
+    } else {
+      fetchAnalytics(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDateParam, endDateParam, fetchAnalytics]); // cachedAnalytics is constant, safe to omit
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -160,12 +204,13 @@ export default function OwnerDashboard() {
     });
   };
 
-  if (initialLoading) {
+  // Show loading spinner during SSR and initial client mount
+  if (!mounted || initialLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="bg-background flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-border border-t-primary"></div>
-          <p className="mt-4 text-muted-foreground">Loading analytics...</p>
+          <div className="border-border border-t-primary mx-auto h-12 w-12 animate-spin rounded-full border-4"></div>
+          <p className="text-muted-foreground mt-4">Loading analytics...</p>
         </div>
       </div>
     );
@@ -173,12 +218,12 @@ export default function OwnerDashboard() {
 
   if (error && !analytics) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="bg-background flex min-h-screen items-center justify-center">
         <div className="text-center">
           <p className="text-error font-semibold">Error: {error}</p>
           <button
             onClick={() => fetchAnalytics(true)}
-            className="mt-4 rounded-xl bg-primary px-6 py-3 text-primary-foreground font-bold hover:opacity-90 transition-all shadow-md hover:shadow-lg"
+            className="bg-primary text-primary-foreground mt-4 rounded-xl px-6 py-3 font-bold shadow-md transition-all hover:opacity-90 hover:shadow-lg"
           >
             Retry
           </button>
@@ -189,8 +234,52 @@ export default function OwnerDashboard() {
 
   if (!analytics) return null;
 
+  // Format percentage change
+  const formatChange = (change: number | undefined) => {
+    if (change === undefined) return null;
+    const isPositive = change >= 0;
+    return (
+      <span
+        className={`inline-flex items-center gap-1 text-xs font-bold ${isPositive ? "text-green-600" : "text-red-600"}`}
+      >
+        {isPositive ? (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={3}
+            stroke="currentColor"
+            className="h-3 w-3"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4.5 10.5 12 3m0 0 7.5 7.5M12 3v18"
+            />
+          </svg>
+        ) : (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={3}
+            stroke="currentColor"
+            className="h-3 w-3"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3"
+            />
+          </svg>
+        )}
+        {Math.abs(change).toFixed(1)}%
+      </span>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-background px-4 py-6 md:py-8">
+    <div className="bg-background min-h-screen px-4 py-6 md:py-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-6 md:mb-8">
@@ -198,77 +287,117 @@ export default function OwnerDashboard() {
           <div className="flex flex-col gap-4 md:hidden">
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-foreground">Owner Dashboard</h1>
+                <h1 className="text-foreground text-2xl font-bold">
+                  Owner Dashboard
+                </h1>
                 {refreshing && (
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+                  <div className="border-border border-t-primary h-5 w-5 animate-spin rounded-full border-2"></div>
                 )}
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-sm">
                 Business analytics and insights
               </p>
             </div>
 
             {/* Real-time indicator - Mobile */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 rounded-lg bg-card border border-border px-3 py-2 shadow-sm">
-                <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`}></div>
-                <span className="text-xs font-semibold text-muted-foreground">
-                  {isConnected ? 'Live updates active' : 'Connecting...'}
+            <div className="flex items-center justify-between gap-2">
+              <div className="bg-card border-border flex items-center gap-2 rounded-lg border px-3 py-2 shadow-sm">
+                <div
+                  className={`h-2.5 w-2.5 rounded-full ${isConnected ? "animate-pulse bg-green-500" : "bg-muted-foreground"}`}
+                ></div>
+                <span className="text-muted-foreground text-xs font-semibold">
+                  {isConnected ? "Live" : "Connecting..."}
                 </span>
               </div>
 
-              <Link
-                href="/owner/products"
-                className="rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md active:scale-95"
-              >
-                Products
-              </Link>
+              <div className="flex items-center gap-2">
+                {analytics && (
+                  <ExportButton
+                    data={{ analytics }}
+                    dateRange={{
+                      startDate: searchParams.get("startDate"),
+                      endDate: searchParams.get("endDate"),
+                    }}
+                  />
+                )}
+                <Link
+                  href="/owner/products"
+                  className="bg-primary text-primary-foreground rounded-xl px-4 py-2.5 text-sm font-bold shadow-md transition-all hover:opacity-90 active:scale-95"
+                >
+                  Products
+                </Link>
+              </div>
             </div>
           </div>
 
           {/* Desktop Header */}
-          <div className="hidden md:flex items-center justify-between">
+          <div className="hidden items-center justify-between md:flex">
             <div className="flex items-center gap-6">
               <div>
                 <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-bold text-foreground">Owner Dashboard</h1>
+                  <h1 className="text-foreground text-3xl font-bold">
+                    Owner Dashboard
+                  </h1>
                   {refreshing && (
-                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary"></div>
+                    <div className="border-border border-t-primary h-6 w-6 animate-spin rounded-full border-2"></div>
                   )}
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-2 text-sm">
                   Business analytics and insights
                 </p>
               </div>
               {/* Real-time connection indicator - Desktop */}
-              <div className="flex items-center gap-2 rounded-lg bg-card border border-border px-4 py-2 shadow-sm">
-                <div className={`h-2.5 w-2.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`}></div>
-                <span className="text-xs font-semibold text-muted-foreground">
-                  {isConnected ? 'Live updates active' : 'Connecting...'}
+              <div className="bg-card border-border flex items-center gap-2 rounded-lg border px-4 py-2 shadow-sm">
+                <div
+                  className={`h-2.5 w-2.5 rounded-full ${isConnected ? "animate-pulse bg-green-500" : "bg-muted-foreground"}`}
+                ></div>
+                <span className="text-muted-foreground text-xs font-semibold">
+                  {isConnected ? "Live updates active" : "Connecting..."}
                 </span>
               </div>
             </div>
-            <Link
-              href="/owner/products"
-              className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md hover:shadow-lg"
-            >
-              Manage Products
-            </Link>
+            <div className="flex items-center gap-3">
+              {analytics && (
+                <ExportButton
+                  data={{ analytics }}
+                  dateRange={{
+                    startDate: searchParams.get("startDate"),
+                    endDate: searchParams.get("endDate"),
+                  }}
+                />
+              )}
+              <Link
+                href="/owner/products"
+                className="bg-primary text-primary-foreground rounded-xl px-6 py-3 text-sm font-bold shadow-md transition-all hover:opacity-90 hover:shadow-lg"
+              >
+                Manage Products
+              </Link>
+            </div>
           </div>
         </div>
 
+        {/* Date Range Picker */}
+        <div className="mb-6 md:mb-8">
+          <DateRangePicker />
+        </div>
+
         {/* Stats Cards */}
-        <div className="mb-6 md:mb-8 grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-4 md:mb-8 md:gap-6 lg:grid-cols-4">
           {/* Total Orders */}
-          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md hover:shadow-lg transition-shadow">
+          <div className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex-1">
-                <p className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total Orders</p>
-                <p className="mt-1 md:mt-2 text-2xl md:text-3xl font-black text-card-foreground">
-                  {analytics.totalOrders}
+                <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase md:text-sm">
+                  Total Orders
                 </p>
+                <div className="mt-1 flex items-center gap-2 md:mt-2">
+                  <p className="text-card-foreground text-2xl font-black md:text-3xl">
+                    {analytics.totalOrders}
+                  </p>
+                  {formatChange(analytics.ordersChange)}
+                </div>
               </div>
-              <div className="hidden md:block rounded-full bg-blue-100 dark:bg-blue-900/30 p-3">
+              <div className="hidden rounded-full bg-blue-100 p-3 md:block dark:bg-blue-900/30">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -288,15 +417,20 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Total Revenue */}
-          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md hover:shadow-lg transition-shadow">
+          <div className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex-1">
-                <p className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Revenue</p>
-                <p className="mt-1 md:mt-2 text-xl md:text-3xl font-black text-card-foreground">
-                  ₱{analytics.totalRevenue.toFixed(2)}
+                <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase md:text-sm">
+                  Revenue
                 </p>
+                <div className="mt-1 flex items-center gap-2 md:mt-2">
+                  <p className="text-card-foreground text-xl font-black md:text-3xl">
+                    ₱{analytics.totalRevenue.toFixed(2)}
+                  </p>
+                  {formatChange(analytics.revenueChange)}
+                </div>
               </div>
-              <div className="hidden md:block rounded-full bg-green-100 dark:bg-green-900/30 p-3">
+              <div className="hidden rounded-full bg-green-100 p-3 md:block dark:bg-green-900/30">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -316,18 +450,22 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Average Order Value */}
-          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md hover:shadow-lg transition-shadow">
+          <div className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex-1">
-                <p className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Avg Order</p>
-                <p className="mt-1 md:mt-2 text-xl md:text-3xl font-black text-card-foreground">
+                <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase md:text-sm">
+                  Avg Order
+                </p>
+                <p className="text-card-foreground mt-1 text-xl font-black md:mt-2 md:text-3xl">
                   ₱
                   {analytics.totalOrders > 0
-                    ? (analytics.totalRevenue / analytics.totalOrders).toFixed(2)
+                    ? (analytics.totalRevenue / analytics.totalOrders).toFixed(
+                        2,
+                      )
                     : "0.00"}
                 </p>
               </div>
-              <div className="hidden md:block rounded-full bg-purple-100 dark:bg-purple-900/30 p-3">
+              <div className="hidden rounded-full bg-purple-100 p-3 md:block dark:bg-purple-900/30">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -347,18 +485,19 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Completed Orders */}
-          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md hover:shadow-lg transition-shadow">
+          <div className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="flex-1">
-                <p className="text-xs md:text-sm font-semibold text-muted-foreground uppercase tracking-wide">Completed</p>
-                <p className="mt-1 md:mt-2 text-2xl md:text-3xl font-black text-card-foreground">
-                  {
-                    analytics.ordersByStatus.find((s) => s.status === "COMPLETED")
-                      ?.count || 0
-                  }
+                <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase md:text-sm">
+                  Completed
+                </p>
+                <p className="text-card-foreground mt-1 text-2xl font-black md:mt-2 md:text-3xl">
+                  {analytics.ordersByStatus.find(
+                    (s) => s.status === "COMPLETED",
+                  )?.count || 0}
                 </p>
               </div>
-              <div className="hidden md:block rounded-full bg-green-100 dark:bg-green-900/30 p-3">
+              <div className="hidden rounded-full bg-green-100 p-3 md:block dark:bg-green-900/30">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -378,49 +517,64 @@ export default function OwnerDashboard() {
           </div>
         </div>
 
+        {/* Revenue Chart */}
+        <div className="mb-4 md:mb-6">
+          <RevenueChart
+            data={analytics.revenueByDay || []}
+            loading={refreshing}
+          />
+        </div>
+
         {/* Two Column Layout */}
         <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
           {/* Popular Products */}
-          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md">
+          <div className="border-border bg-card rounded-xl border p-4 shadow-md md:p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base md:text-lg font-bold text-card-foreground">
+              <h2 className="text-card-foreground text-base font-bold md:text-lg">
                 Popular Products
               </h2>
-              <div className="rounded-full bg-primary/10 px-3 py-1">
-                <span className="text-xs font-bold text-primary">
+              <div className="bg-primary/10 rounded-full px-3 py-1">
+                <span className="text-primary text-xs font-bold">
                   {analytics.popularProducts.length}
                 </span>
               </div>
             </div>
             {analytics.popularProducts.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No orders yet</p>
+              <p className="text-muted-foreground py-8 text-center">
+                No orders yet
+              </p>
             ) : (
               <div className="space-y-3">
                 {analytics.popularProducts.map((item, index) => (
                   <div
                     key={item.product.id}
-                    className="flex items-center gap-3 rounded-lg border border-border p-3 md:p-4 hover:bg-muted transition-colors"
+                    className="border-border hover:bg-muted flex items-center gap-3 rounded-lg border p-3 transition-colors md:p-4"
                   >
-                    <div className="flex h-8 w-8 md:h-10 md:w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-bold text-primary text-sm md:text-base">
+                    <div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold md:h-10 md:w-10 md:text-base">
                       {index + 1}
                     </div>
                     {item.product.imageUrl && (
-                      <img
+                      <Image
                         src={item.product.imageUrl}
                         alt={item.product.name}
-                        className="h-12 w-12 md:h-16 md:w-16 shrink-0 rounded-lg object-cover shadow-sm"
+                        width={64}
+                        height={64}
+                        className="h-12 w-12 shrink-0 rounded-lg object-cover shadow-sm md:h-16 md:w-16"
                       />
                     )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-card-foreground text-sm md:text-base truncate">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-card-foreground truncate text-sm font-bold md:text-base">
                         {item.product.name}
                       </p>
-                      <p className="text-xs md:text-sm text-muted-foreground">
-                        <span className="font-semibold text-primary">{item.totalQuantitySold}</span> sold • {item.orderCount} orders
+                      <p className="text-muted-foreground text-xs md:text-sm">
+                        <span className="text-primary font-semibold">
+                          {item.totalQuantitySold}
+                        </span>{" "}
+                        sold • {item.orderCount} orders
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-bold text-card-foreground text-sm md:text-base">
+                    <div className="shrink-0 text-right">
+                      <p className="text-card-foreground text-sm font-bold md:text-base">
                         ₱{item.product.price.toFixed(2)}
                       </p>
                     </div>
@@ -431,13 +585,13 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Orders by Status */}
-          <div className="rounded-xl border border-border bg-card p-4 md:p-6 shadow-md">
+          <div className="border-border bg-card rounded-xl border p-4 shadow-md md:p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base md:text-lg font-bold text-card-foreground">
+              <h2 className="text-card-foreground text-base font-bold md:text-lg">
                 Orders by Status
               </h2>
-              <div className="rounded-full bg-primary/10 px-3 py-1">
-                <span className="text-xs font-bold text-primary">
+              <div className="bg-primary/10 rounded-full px-3 py-1">
+                <span className="text-primary text-xs font-bold">
                   {analytics.totalOrders}
                 </span>
               </div>
@@ -459,13 +613,13 @@ export default function OwnerDashboard() {
                       >
                         {item.status}
                       </span>
-                      <span className="text-sm font-semibold text-card-foreground">
+                      <span className="text-card-foreground text-sm font-semibold">
                         {item.count} ({percentage.toFixed(0)}%)
                       </span>
                     </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div className="bg-muted h-2 w-full overflow-hidden rounded-full">
                       <div
-                        className="h-full bg-primary transition-all"
+                        className="bg-primary h-full transition-all"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -477,17 +631,21 @@ export default function OwnerDashboard() {
         </div>
 
         {/* Recent Orders */}
-        <div className="mt-4 md:mt-6 rounded-xl border border-border bg-card p-4 md:p-6 shadow-md">
+        <div className="border-border bg-card mt-4 rounded-xl border p-4 shadow-md md:mt-6 md:p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base md:text-lg font-bold text-card-foreground">Recent Orders</h2>
-            <div className="rounded-full bg-primary/10 px-3 py-1">
-              <span className="text-xs font-bold text-primary">
+            <h2 className="text-card-foreground text-base font-bold md:text-lg">
+              Recent Orders
+            </h2>
+            <div className="bg-primary/10 rounded-full px-3 py-1">
+              <span className="text-primary text-xs font-bold">
                 {analytics.recentOrders.length}
               </span>
             </div>
           </div>
           {analytics.recentOrders.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No recent orders</p>
+            <p className="text-muted-foreground py-8 text-center">
+              No recent orders
+            </p>
           ) : (
             <>
               {/* Mobile: Card View */}
@@ -495,14 +653,14 @@ export default function OwnerDashboard() {
                 {analytics.recentOrders.map((order) => (
                   <div
                     key={order.id}
-                    className="rounded-lg border border-border p-3 hover:bg-muted transition-colors"
+                    className="border-border hover:bg-muted rounded-lg border p-3 transition-colors"
                   >
-                    <div className="flex items-start justify-between mb-2">
+                    <div className="mb-2 flex items-start justify-between">
                       <div>
-                        <p className="font-mono text-xs text-muted-foreground">
+                        <p className="text-muted-foreground font-mono text-xs">
                           #{order.id.slice(0, 8).toUpperCase()}
                         </p>
-                        <p className="mt-1 font-bold text-card-foreground text-sm">
+                        <p className="text-card-foreground mt-1 text-sm font-bold">
                           {order.user.name}
                         </p>
                       </div>
@@ -514,12 +672,12 @@ export default function OwnerDashboard() {
                         {order.status}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex items-center justify-between text-xs">
                       <span>{order.orderItems.length} item(s)</span>
                       <span>{formatDate(order.createdAt)}</span>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-border">
-                      <p className="text-lg font-black text-primary">
+                    <div className="border-border mt-2 border-t pt-2">
+                      <p className="text-primary text-lg font-black">
                         ₱{order.total.toFixed(2)}
                       </p>
                     </div>
@@ -528,10 +686,10 @@ export default function OwnerDashboard() {
               </div>
 
               {/* Desktop: Table View */}
-              <div className="hidden md:block overflow-x-auto">
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-border text-left text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                    <tr className="border-border text-muted-foreground border-b text-left text-xs font-bold tracking-wide uppercase">
                       <th className="pb-3">Order ID</th>
                       <th className="pb-3">Customer</th>
                       <th className="pb-3">Items</th>
@@ -544,21 +702,23 @@ export default function OwnerDashboard() {
                     {analytics.recentOrders.map((order) => (
                       <tr
                         key={order.id}
-                        className="border-b border-border hover:bg-muted transition-colors"
+                        className="border-border hover:bg-muted border-b transition-colors"
                       >
-                        <td className="py-3 font-mono text-xs text-muted-foreground">
+                        <td className="text-muted-foreground py-3 font-mono text-xs">
                           #{order.id.slice(0, 8).toUpperCase()}
                         </td>
                         <td className="py-3">
-                          <p className="font-semibold text-card-foreground">
+                          <p className="text-card-foreground font-semibold">
                             {order.user.name}
                           </p>
-                          <p className="text-xs text-muted-foreground">{order.user.email}</p>
+                          <p className="text-muted-foreground text-xs">
+                            {order.user.email}
+                          </p>
                         </td>
-                        <td className="py-3 text-muted-foreground">
+                        <td className="text-muted-foreground py-3">
                           {order.orderItems.length} item(s)
                         </td>
-                        <td className="py-3 font-bold text-card-foreground">
+                        <td className="text-card-foreground py-3 font-bold">
                           ₱{order.total.toFixed(2)}
                         </td>
                         <td className="py-3">
@@ -570,7 +730,7 @@ export default function OwnerDashboard() {
                             {order.status}
                           </span>
                         </td>
-                        <td className="py-3 text-muted-foreground text-xs">
+                        <td className="text-muted-foreground py-3 text-xs">
                           {formatDate(order.createdAt)}
                         </td>
                       </tr>
@@ -583,5 +743,22 @@ export default function OwnerDashboard() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OwnerDashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-background flex min-h-screen items-center justify-center">
+          <div className="text-center">
+            <div className="border-border border-t-primary mx-auto h-12 w-12 animate-spin rounded-full border-4"></div>
+            <p className="text-muted-foreground mt-4">Loading dashboard...</p>
+          </div>
+        </div>
+      }
+    >
+      <OwnerDashboardContent />
+    </Suspense>
   );
 }
