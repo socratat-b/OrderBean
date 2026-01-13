@@ -2,8 +2,11 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/dal";
 import { NextRequest, NextResponse } from "next/server";
+import { startOfDay, endOfDay, subDays } from "date-fns";
+import { Prisma } from "@/app/generated/prisma/client";
 
 // GET /api/owner/analytics - View business analytics (OWNER only)
+// Supports date filtering via query params: ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
 export async function GET(request: NextRequest) {
   try {
     // Verify session using DAL
@@ -21,28 +24,104 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get total orders count
-    const totalOrders = await prisma.order.count();
+    // Parse date range from query parameters
+    const searchParams = request.nextUrl.searchParams;
+    const startDateParam = searchParams.get("startDate");
+    const endDateParam = searchParams.get("endDate");
 
-    // Get total revenue
+    let dateFilter: { createdAt?: { gte: Date; lte: Date } } = {};
+    let previousPeriodFilter: { createdAt?: { gte: Date; lte: Date } } = {};
+
+    if (startDateParam && endDateParam) {
+      const startDate = startOfDay(new Date(startDateParam));
+      const endDate = endOfDay(new Date(endDateParam));
+
+      // Current period filter
+      dateFilter = {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      };
+
+      // Calculate previous period for comparison
+      const daysDiff = Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const previousStartDate = startOfDay(subDays(startDate, daysDiff));
+      const previousEndDate = endOfDay(subDays(endDate, daysDiff));
+
+      previousPeriodFilter = {
+        createdAt: {
+          gte: previousStartDate,
+          lte: previousEndDate,
+        },
+      };
+    }
+
+    // Get total orders count for current period
+    const totalOrders = await prisma.order.count({
+      where: dateFilter,
+    });
+
+    // Get total orders count for previous period (for comparison)
+    const previousPeriodOrders = await prisma.order.count({
+      where: previousPeriodFilter,
+    });
+
+    // Calculate percentage change in orders
+    const ordersChange =
+      previousPeriodOrders > 0
+        ? ((totalOrders - previousPeriodOrders) / previousPeriodOrders) * 100
+        : totalOrders > 0
+        ? 100
+        : 0;
+
+    // Get total revenue for current period
     const revenueData = await prisma.order.aggregate({
+      where: dateFilter,
       _sum: {
         total: true,
       },
     });
     const totalRevenue = revenueData._sum.total || 0;
 
+    // Get previous period revenue
+    const previousRevenueData = await prisma.order.aggregate({
+      where: previousPeriodFilter,
+      _sum: {
+        total: true,
+      },
+    });
+    const previousRevenue = previousRevenueData._sum.total || 0;
+
+    // Calculate percentage change in revenue
+    const revenueChange =
+      previousRevenue > 0
+        ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
+        : totalRevenue > 0
+        ? 100
+        : 0;
+
     // Get orders by status
     const ordersByStatus = await prisma.order.groupBy({
+      where: dateFilter,
       by: ["status"],
       _count: {
         id: true,
       },
     });
 
-    // Get popular products (most ordered)
-    const popularProducts = await prisma.orderItem.groupBy({
+    // Get popular products (most ordered) with date filtering
+    const popularProductsRaw = await prisma.orderItem.groupBy({
       by: ["productId"],
+      where: dateFilter.createdAt
+        ? {
+            order: {
+              createdAt: dateFilter.createdAt,
+            },
+          }
+        : undefined,
       _sum: {
         quantity: true,
       },
@@ -58,7 +137,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Get product details for popular products
-    const productIds = popularProducts.map((item) => item.productId);
+    const productIds = popularProductsRaw.map((item) => item.productId);
     const products = await prisma.product.findMany({
       where: {
         id: { in: productIds },
@@ -66,7 +145,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Combine popular products with their details
-    const popularProductsWithDetails = popularProducts.map((item) => {
+    const popularProducts = popularProductsRaw.map((item) => {
       const product = products.find((p) => p.id === item.productId);
       return {
         product,
@@ -75,8 +154,9 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Get recent orders (last 10)
+    // Get recent orders (last 10) with date filtering
     const recentOrders = await prisma.order.findMany({
+      where: dateFilter,
       take: 10,
       orderBy: {
         createdAt: "desc",
@@ -100,17 +180,56 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Get daily revenue data for chart (last 30 days or filtered period)
+    const revenueByDay = dateFilter.createdAt
+      ? await prisma.$queryRaw<
+          Array<{ date: Date; revenue: number; orderCount: number }>
+        >(
+          Prisma.sql`
+            SELECT
+              DATE("createdAt") as date,
+              SUM(total)::float as revenue,
+              COUNT(*)::int as "orderCount"
+            FROM "Order"
+            WHERE "createdAt" >= ${dateFilter.createdAt.gte} AND "createdAt" <= ${dateFilter.createdAt.lte}
+            GROUP BY DATE("createdAt")
+            ORDER BY date ASC
+            LIMIT 90
+          `
+        )
+      : await prisma.$queryRaw<
+          Array<{ date: Date; revenue: number; orderCount: number }>
+        >(
+          Prisma.sql`
+            SELECT
+              DATE("createdAt") as date,
+              SUM(total)::float as revenue,
+              COUNT(*)::int as "orderCount"
+            FROM "Order"
+            GROUP BY DATE("createdAt")
+            ORDER BY date DESC
+            LIMIT 90
+          `
+        );
+
     return NextResponse.json({
       success: true,
       analytics: {
         totalOrders,
         totalRevenue,
+        ordersChange: Math.round(ordersChange * 10) / 10, // Round to 1 decimal
+        revenueChange: Math.round(revenueChange * 10) / 10,
         ordersByStatus: ordersByStatus.map((item) => ({
           status: item.status,
           count: item._count.id,
         })),
-        popularProducts: popularProductsWithDetails,
+        popularProducts,
         recentOrders,
+        revenueByDay: revenueByDay.map((day) => ({
+          date: day.date.toISOString().split("T")[0], // Format as YYYY-MM-DD
+          revenue: Number(day.revenue),
+          orderCount: day.orderCount,
+        })),
       },
     });
   } catch (error) {
