@@ -9,7 +9,7 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
-    shadowDatabaseUrl: env("DIRECT_URL"),
+    url: env("DIRECT_URL"), // Direct connection for Prisma CLI (migrations, db push, etc.)
+    // App runtime uses DATABASE_URL (pooler) via PrismaClient in lib/prisma.ts
   },
 });
