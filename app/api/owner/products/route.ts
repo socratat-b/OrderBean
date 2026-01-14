@@ -11,6 +11,9 @@ interface CreateProductBody {
   category: string;
   imageUrl?: string;
   available?: boolean;
+  stockQuantity?: number;
+  lowStockThreshold?: number;
+  stockEnabled?: boolean;
 }
 
 // GET /api/owner/products - List all products (OWNER only)
@@ -70,7 +73,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body: CreateProductBody = await request.json();
-    const { name, description, price, category, imageUrl, available } = body;
+    const {
+      name,
+      description,
+      price,
+      category,
+      imageUrl,
+      available,
+      stockQuantity,
+      lowStockThreshold,
+      stockEnabled,
+    } = body;
 
     // Validate required fields
     if (!name || !price || !category) {
@@ -88,6 +101,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate stock fields if stock tracking is enabled
+    if (stockEnabled) {
+      if (stockQuantity === undefined || stockQuantity < 0) {
+        return NextResponse.json(
+          { error: "Stock quantity must be 0 or greater when stock tracking is enabled" },
+          { status: 400 },
+        );
+      }
+      if (lowStockThreshold === undefined || lowStockThreshold < 1) {
+        return NextResponse.json(
+          { error: "Low stock threshold must be at least 1 when stock tracking is enabled" },
+          { status: 400 },
+        );
+      }
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -96,6 +125,9 @@ export async function POST(request: NextRequest) {
         category,
         imageUrl,
         available: available ?? true,
+        stockQuantity: stockQuantity ?? 0,
+        lowStockThreshold: lowStockThreshold ?? 10,
+        stockEnabled: stockEnabled ?? false,
       },
     });
 

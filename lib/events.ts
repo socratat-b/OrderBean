@@ -55,6 +55,9 @@ class EventEmitter {
       [ORDER_EVENTS.ORDER_CREATED]: REDIS_CHANNELS.ORDER_CREATED,
       [ORDER_EVENTS.ORDER_UPDATED]: REDIS_CHANNELS.ORDER_UPDATED,
       [ORDER_EVENTS.ORDER_STATUS_CHANGED]: REDIS_CHANNELS.ORDER_STATUS_CHANGED,
+      [ORDER_EVENTS.LOW_STOCK_ALERT]: REDIS_CHANNELS.LOW_STOCK_ALERT,
+      [ORDER_EVENTS.STOCK_UPDATED]: REDIS_CHANNELS.STOCK_UPDATED,
+      [ORDER_EVENTS.OUT_OF_STOCK]: REDIS_CHANNELS.OUT_OF_STOCK,
     }
 
     const redisChannel = channelMap[event]
@@ -90,11 +93,23 @@ export const ORDER_EVENTS = {
   ORDER_CREATED: 'order:created',
   ORDER_UPDATED: 'order:updated',
   ORDER_STATUS_CHANGED: 'order:status_changed',
+  // Inventory events
+  LOW_STOCK_ALERT: 'inventory:low_stock_alert',
+  STOCK_UPDATED: 'inventory:stock_updated',
+  OUT_OF_STOCK: 'inventory:out_of_stock',
 } as const
 
 export type OrderEvent = {
   orderId: string
   userId: string
   status: string
+  timestamp: number
+}
+
+export type InventoryEvent = {
+  productId: string
+  productName: string
+  stockQuantity: number
+  lowStockThreshold?: number
   timestamp: number
 }

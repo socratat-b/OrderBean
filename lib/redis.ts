@@ -18,6 +18,10 @@ export const REDIS_CHANNELS = {
   ORDER_CREATED: 'orderbean:order:created',
   ORDER_UPDATED: 'orderbean:order:updated',
   ORDER_STATUS_CHANGED: 'orderbean:order:status_changed',
+  // Inventory channels
+  LOW_STOCK_ALERT: 'orderbean:inventory:low_stock_alert',
+  STOCK_UPDATED: 'orderbean:inventory:stock_updated',
+  OUT_OF_STOCK: 'orderbean:inventory:out_of_stock',
 } as const
 
 export type OrderEvent = {
@@ -27,22 +31,32 @@ export type OrderEvent = {
   timestamp: number
 }
 
+export type InventoryEvent = {
+  productId: string
+  productName: string
+  stockQuantity: number
+  lowStockThreshold?: number
+  timestamp: number
+}
+
 /**
  * Publish an order event to Redis Stream
  * This will be received by all SSE connections polling the stream
  */
-export async function publishOrderEvent(streamName: string, event: OrderEvent) {
+export async function publishOrderEvent(streamName: string, event: OrderEvent | InventoryEvent) {
   try {
+    // Convert event to string values for Redis (Redis requires string values)
+    const eventData: Record<string, string> = {}
+
+    for (const [key, value] of Object.entries(event)) {
+      eventData[key] = String(value)
+    }
+
     // Add message to Redis Stream (Upstash Redis format)
     await redis.xadd(
       streamName,
       '*', // Auto-generate ID
-      {
-        orderId: event.orderId,
-        userId: event.userId,
-        status: event.status,
-        timestamp: event.timestamp.toString(),
-      }
+      eventData
     )
 
     console.log(`[Redis Stream] Added to ${streamName}:`, event)

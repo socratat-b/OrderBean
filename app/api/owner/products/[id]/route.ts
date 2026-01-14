@@ -11,6 +11,9 @@ interface UpdateProductBody {
   category?: string;
   imageUrl?: string;
   available?: boolean;
+  stockQuantity?: number;
+  lowStockThreshold?: number;
+  stockEnabled?: boolean;
 }
 
 // PATCH /api/owner/products/[id] - Update product (OWNER only)
@@ -51,6 +54,29 @@ export async function PATCH(
     if (body.price !== undefined && body.price <= 0) {
       return NextResponse.json(
         { error: "Price must be greater than 0" },
+        { status: 400 },
+      );
+    }
+
+    // Validate stock fields if provided
+    if (body.stockQuantity !== undefined && body.stockQuantity < 0) {
+      return NextResponse.json(
+        { error: "Stock quantity cannot be negative" },
+        { status: 400 },
+      );
+    }
+
+    if (body.lowStockThreshold !== undefined && body.lowStockThreshold < 1) {
+      return NextResponse.json(
+        { error: "Low stock threshold must be at least 1" },
+        { status: 400 },
+      );
+    }
+
+    // If enabling stock tracking, ensure stock quantity is set
+    if (body.stockEnabled && body.stockQuantity === undefined && existingProduct.stockQuantity === 0) {
+      return NextResponse.json(
+        { error: "Please set stock quantity when enabling stock tracking" },
         { status: 400 },
       );
     }

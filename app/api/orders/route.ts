@@ -95,6 +95,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check stock availability for products with stock tracking enabled
+    for (const item of items) {
+      const product = products.find((p) => p.id === item.productId);
+      if (!product) continue;
+
+      if (product.stockEnabled) {
+        if (product.stockQuantity < item.quantity) {
+          return NextResponse.json(
+            {
+              error: `Insufficient stock for ${product.name}. Available: ${product.stockQuantity}, Requested: ${item.quantity}`,
+            },
+            { status: 400 },
+          );
+        }
+      }
+    }
+
     // Calculate total
     let total = 0;
     const orderItems = items.map((item) => {
@@ -111,24 +128,64 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Create order with items
-    const order = await prisma.order.create({
-      data: {
-        userId,
-        total,
-        status: "PENDING",
-        orderItems: {
-          create: orderItems,
-        },
-      },
-      include: {
-        orderItems: {
-          include: {
-            product: true,
+    // Create order with items and deduct stock in a transaction
+    const order = await prisma.$transaction(async (tx) => {
+      // Create the order
+      const newOrder = await tx.order.create({
+        data: {
+          userId,
+          total,
+          status: "PENDING",
+          orderItems: {
+            create: orderItems,
           },
         },
-      },
+        include: {
+          orderItems: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+
+      // Deduct stock for products with stock tracking enabled
+      for (const item of items) {
+        const product = products.find((p) => p.id === item.productId);
+        if (product && product.stockEnabled) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stockQuantity: {
+                decrement: item.quantity,
+              },
+            },
+          });
+        }
+      }
+
+      return newOrder;
     });
+
+    // Check for low stock and emit alerts
+    for (const item of items) {
+      const product = products.find((p) => p.id === item.productId);
+      if (product && product.stockEnabled) {
+        const newStockQuantity = product.stockQuantity - item.quantity;
+
+        // Check if stock is low or out of stock
+        if (newStockQuantity <= product.lowStockThreshold) {
+          // Emit low stock alert event
+          await orderEvents.emit(ORDER_EVENTS.LOW_STOCK_ALERT, {
+            productId: product.id,
+            productName: product.name,
+            stockQuantity: newStockQuantity,
+            lowStockThreshold: product.lowStockThreshold,
+            timestamp: Date.now(),
+          });
+        }
+      }
+    }
 
     // Invalidate the user's orders cache for ISR
     revalidatePath("/orders");

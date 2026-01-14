@@ -50,18 +50,24 @@ model User {
 
 // Products table - coffee menu items
 model Product {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  price       Float
-  category    String   // e.g., "Coffee", "Pastry", "Sandwich"
-  imageUrl    String?
-  available   Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  price             Float
+  category          String   // e.g., "Coffee", "Pastry", "Sandwich"
+  imageUrl          String?
+  available         Boolean  @default(true)
+
+  // Inventory tracking fields
+  stockQuantity     Int      @default(0)      // Current stock quantity
+  lowStockThreshold Int      @default(10)     // Alert threshold
+  stockEnabled      Boolean  @default(false)  // Enable/disable stock tracking for this product
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
-  orderItems  OrderItem[]  // A product can be in many orders
+  orderItems        OrderItem[]  // A product can be in many orders
 }
 
 // Orders table - customer orders
