@@ -12,6 +12,9 @@ interface Product {
   category: string;
   imageUrl: string | null;
   available: boolean;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  stockEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,6 +57,9 @@ export default function ProductsManagement() {
     category: "",
     imageUrl: "",
     available: true,
+    stockQuantity: "",
+    lowStockThreshold: "10",
+    stockEnabled: false,
   });
 
   useEffect(() => {
@@ -106,6 +112,9 @@ export default function ProductsManagement() {
       category: "",
       imageUrl: "",
       available: true,
+      stockQuantity: "",
+      lowStockThreshold: "10",
+      stockEnabled: false,
     });
     setImagePreview("");
     setShowModal(true);
@@ -120,6 +129,9 @@ export default function ProductsManagement() {
       category: product.category,
       imageUrl: product.imageUrl || "",
       available: product.available,
+      stockQuantity: product.stockQuantity.toString(),
+      lowStockThreshold: product.lowStockThreshold.toString(),
+      stockEnabled: product.stockEnabled,
     });
     setImagePreview(product.imageUrl || "");
     setShowModal(true);
@@ -135,6 +147,9 @@ export default function ProductsManagement() {
       category: "",
       imageUrl: "",
       available: true,
+      stockQuantity: "",
+      lowStockThreshold: "10",
+      stockEnabled: false,
     });
     setImagePreview("");
   }
@@ -212,6 +227,9 @@ export default function ProductsManagement() {
           category: formData.category,
           imageUrl: formData.imageUrl || undefined,
           available: formData.available,
+          stockQuantity: formData.stockQuantity ? parseInt(formData.stockQuantity) : 0,
+          lowStockThreshold: formData.lowStockThreshold ? parseInt(formData.lowStockThreshold) : 10,
+          stockEnabled: formData.stockEnabled,
         }),
       });
 
@@ -482,28 +500,74 @@ export default function ProductsManagement() {
                     </p>
                   )}
 
-                  {/* Availability Toggle */}
-                  <div className="mb-3 flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-card-foreground">
-                        Stock
-                      </span>
-                      <span className={`text-xs font-semibold ${product.available ? 'text-green-600 dark:text-green-500' : 'text-error'}`}>
-                        {product.available ? 'In Stock' : 'Out'}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => toggleAvailability(product)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        product.available ? "bg-green-600 dark:bg-green-500" : "bg-muted-foreground"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                          product.available ? "translate-x-6" : "translate-x-1"
+                  {/* Stock Information */}
+                  <div className="mb-3 space-y-2">
+                    {/* Availability Toggle */}
+                    <div className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-card-foreground">
+                          Available
+                        </span>
+                        <span className={`text-xs font-semibold ${product.available ? 'text-green-600 dark:text-green-500' : 'text-error'}`}>
+                          {product.available ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => toggleAvailability(product)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          product.available ? "bg-green-600 dark:bg-green-500" : "bg-muted-foreground"
                         }`}
-                      />
-                    </button>
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                            product.available ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Stock Quantity (if enabled) */}
+                    {product.stockEnabled && (
+                      <div className={`rounded-lg border px-3 py-2 ${
+                        product.stockQuantity <= product.lowStockThreshold
+                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                          : product.stockQuantity === 0
+                          ? 'border-error bg-error/10'
+                          : 'border-border bg-muted'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-card-foreground">
+                            Stock Quantity
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-sm font-black ${
+                              product.stockQuantity <= product.lowStockThreshold
+                                ? 'text-amber-600 dark:text-amber-500'
+                                : product.stockQuantity === 0
+                                ? 'text-error'
+                                : 'text-green-600 dark:text-green-500'
+                            }`}>
+                              {product.stockQuantity}
+                            </span>
+                            {product.stockQuantity <= product.lowStockThreshold && product.stockQuantity > 0 && (
+                              <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                        {product.stockQuantity <= product.lowStockThreshold && product.stockQuantity > 0 && (
+                          <p className="mt-0.5 text-xs text-amber-600 dark:text-amber-500">
+                            Low stock alert
+                          </p>
+                        )}
+                        {product.stockQuantity === 0 && (
+                          <p className="mt-0.5 text-xs text-error">
+                            Out of stock
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
@@ -724,6 +788,81 @@ export default function ProductsManagement() {
                   }
                   className="h-5 w-5 rounded border-border text-primary focus:ring-2 focus:ring-primary/20"
                 />
+              </div>
+
+              {/* Inventory Management Section */}
+              <div className="border-t border-border pt-4">
+                <div className="mb-4">
+                  <h3 className="text-base font-bold text-card-foreground mb-1">Inventory Management</h3>
+                  <p className="text-xs text-muted-foreground">Track stock levels and get low stock alerts</p>
+                </div>
+
+                {/* Enable Stock Tracking */}
+                <div className="flex items-center justify-between rounded-xl border border-border bg-muted px-4 py-3 mb-4">
+                  <label htmlFor="stockEnabled" className="text-sm font-bold text-card-foreground">
+                    Enable stock tracking
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="stockEnabled"
+                    checked={formData.stockEnabled}
+                    onChange={(e) =>
+                      setFormData({ ...formData, stockEnabled: e.target.checked })
+                    }
+                    className="h-5 w-5 rounded border-border text-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                {/* Stock Quantity and Low Stock Threshold (shown when enabled) */}
+                {formData.stockEnabled && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Stock Quantity */}
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-card-foreground">
+                        Current Stock Quantity *
+                      </label>
+                      <input
+                        type="number"
+                        required={formData.stockEnabled}
+                        min="0"
+                        step="1"
+                        value={formData.stockQuantity}
+                        onChange={(e) =>
+                          setFormData({ ...formData, stockQuantity: e.target.value })
+                        }
+                        className="w-full rounded-xl border border-border bg-card text-card-foreground px-4 py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        placeholder="0"
+                        inputMode="numeric"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Number of units in stock
+                      </p>
+                    </div>
+
+                    {/* Low Stock Threshold */}
+                    <div>
+                      <label className="mb-2 block text-sm font-bold text-card-foreground">
+                        Low Stock Alert Threshold *
+                      </label>
+                      <input
+                        type="number"
+                        required={formData.stockEnabled}
+                        min="1"
+                        step="1"
+                        value={formData.lowStockThreshold}
+                        onChange={(e) =>
+                          setFormData({ ...formData, lowStockThreshold: e.target.value })
+                        }
+                        className="w-full rounded-xl border border-border bg-card text-card-foreground px-4 py-3 text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        placeholder="10"
+                        inputMode="numeric"
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Alert when stock falls below this
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Buttons */}
