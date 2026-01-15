@@ -24,6 +24,16 @@ export function useOwnerOrdersSSE(
   const [error, setError] = useState<string | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
 
+  // Use refs for callbacks to avoid re-creating EventSource on every render
+  const onOrderCreatedRef = useRef(onOrderCreated)
+  const onOrderUpdatedRef = useRef(onOrderUpdated)
+
+  // Keep refs up to date
+  useEffect(() => {
+    onOrderCreatedRef.current = onOrderCreated
+    onOrderUpdatedRef.current = onOrderUpdated
+  })
+
   useEffect(() => {
     // Create EventSource connection
     const eventSource = new EventSource('/api/sse/owner/orders')
@@ -40,10 +50,10 @@ export function useOwnerOrdersSSE(
         const data: OwnerOrderEvent = JSON.parse(event.data)
         console.log('[Owner SSE] Received:', data)
 
-        if (data.type === 'order_created' && onOrderCreated) {
-          onOrderCreated(data)
-        } else if (data.type === 'order_updated' && onOrderUpdated) {
-          onOrderUpdated(data)
+        if (data.type === 'order_created' && onOrderCreatedRef.current) {
+          onOrderCreatedRef.current(data)
+        } else if (data.type === 'order_updated' && onOrderUpdatedRef.current) {
+          onOrderUpdatedRef.current(data)
         }
       } catch (err) {
         console.error('[Owner SSE] Error parsing message:', err)
@@ -63,7 +73,7 @@ export function useOwnerOrdersSSE(
       eventSourceRef.current = null
       setIsConnected(false)
     }
-  }, [onOrderCreated, onOrderUpdated])
+  }, []) // Empty dependency array - only run once on mount
 
   return { isConnected, error }
 }

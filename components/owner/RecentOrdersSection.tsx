@@ -8,6 +8,8 @@ interface RecentOrdersSectionProps {
 }
 
 export default function RecentOrdersSection({ recentOrders }: RecentOrdersSectionProps) {
+  const orders = recentOrders || [];
+
   return (
     <div className="border-border bg-card mt-4 rounded-xl border p-4 shadow-md md:mt-6 md:p-6">
       <div className="mb-4 flex items-center justify-between">
@@ -15,16 +17,16 @@ export default function RecentOrdersSection({ recentOrders }: RecentOrdersSectio
           Recent Orders
         </h2>
         <div className="bg-primary/10 rounded-full px-3 py-1">
-          <span className="text-primary text-xs font-bold">{recentOrders.length}</span>
+          <span className="text-primary text-xs font-bold">{orders.length}</span>
         </div>
       </div>
-      {recentOrders.length === 0 ? (
+      {orders.length === 0 ? (
         <p className="text-muted-foreground py-8 text-center">No recent orders</p>
       ) : (
         <>
           {/* Mobile: Card View */}
           <div className="space-y-3 md:hidden">
-            {recentOrders.map((order) => (
+            {orders.map((order) => (
               <div
                 key={order.id}
                 className="border-border hover:bg-muted rounded-lg border p-3 transition-colors"
@@ -73,7 +75,7 @@ export default function RecentOrdersSection({ recentOrders }: RecentOrdersSectio
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {recentOrders.map((order) => (
+                {orders.map((order) => (
                   <tr
                     key={order.id}
                     className="border-border hover:bg-muted border-b transition-colors"

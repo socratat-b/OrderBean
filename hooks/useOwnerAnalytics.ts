@@ -4,32 +4,37 @@ import { useSearchParams } from "next/navigation";
 import { useOwnerOrdersSSE } from "@/hooks/useOwnerOrdersSSE";
 import { Analytics } from "@/types/owner";
 
+// Get cached analytics from sessionStorage (outside component to avoid re-computation)
+function getCachedAnalytics(): Analytics | null {
+  if (typeof window === "undefined") return null;
+  const cached = sessionStorage.getItem("owner_analytics");
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 export function useOwnerAnalytics() {
   const searchParams = useSearchParams();
-
-  // Check if we have cached data
-  const getCachedAnalytics = () => {
-    if (typeof window === "undefined") return null;
-    const cached = sessionStorage.getItem("owner_analytics");
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  };
-
-  const cachedAnalytics = getCachedAnalytics();
 
   // Extract date params
   const startDateParam = searchParams.get("startDate");
   const endDateParam = searchParams.get("endDate");
 
+  // Use ref to store initial cached value (computed once)
+  const initialCacheRef = useRef<Analytics | null | undefined>(undefined);
+  if (initialCacheRef.current === undefined) {
+    initialCacheRef.current = getCachedAnalytics();
+  }
+  const initialCache = initialCacheRef.current;
+
   // State
-  const [analytics, setAnalytics] = useState<Analytics | null>(cachedAnalytics);
-  const [initialLoading, setInitialLoading] = useState(!cachedAnalytics);
+  const [analytics, setAnalytics] = useState<Analytics | null>(initialCache);
+  const [initialLoading, setInitialLoading] = useState(!initialCache);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -39,8 +44,7 @@ export function useOwnerAnalytics() {
   const fetchAnalytics = useCallback(
     async (isInitial = false) => {
       // Only fetch if we haven't already or if this is a manual refresh
-      if (isInitial && hasFetchedRef.current && cachedAnalytics) {
-        setAnalytics(cachedAnalytics);
+      if (isInitial && hasFetchedRef.current) {
         setInitialLoading(false);
         return;
       }
@@ -72,11 +76,12 @@ export function useOwnerAnalytics() {
         }
 
         const data = await response.json();
-        setAnalytics(data);
+        const analyticsData = data.analytics;
+        setAnalytics(analyticsData);
 
         // Cache the data in sessionStorage
         if (typeof window !== "undefined") {
-          sessionStorage.setItem("owner_analytics", JSON.stringify(data));
+          sessionStorage.setItem("owner_analytics", JSON.stringify(analyticsData));
         }
 
         setError("");
@@ -88,7 +93,7 @@ export function useOwnerAnalytics() {
         setRefreshing(false);
       }
     },
-    [startDateParam, endDateParam, cachedAnalytics]
+    [startDateParam, endDateParam]
   );
 
   // Connect to SSE for real-time updates

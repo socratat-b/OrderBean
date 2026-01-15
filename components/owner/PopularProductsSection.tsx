@@ -9,6 +9,8 @@ interface PopularProductsSectionProps {
 }
 
 export default function PopularProductsSection({ popularProducts }: PopularProductsSectionProps) {
+  const products = popularProducts || [];
+
   return (
     <div className="border-border bg-card rounded-xl border p-4 shadow-md md:p-6">
       <div className="mb-4 flex items-center justify-between">
@@ -16,14 +18,14 @@ export default function PopularProductsSection({ popularProducts }: PopularProdu
           Popular Products
         </h2>
         <div className="bg-primary/10 rounded-full px-3 py-1">
-          <span className="text-primary text-xs font-bold">{popularProducts.length}</span>
+          <span className="text-primary text-xs font-bold">{products.length}</span>
         </div>
       </div>
-      {popularProducts.length === 0 ? (
+      {products.length === 0 ? (
         <p className="text-muted-foreground py-8 text-center">No orders yet</p>
       ) : (
         <div className="space-y-3">
-          {popularProducts.map((item, index) => (
+          {products.map((item, index) => (
             <div
               key={item.product.id}
               className="border-border hover:bg-muted flex items-center gap-3 rounded-lg border p-3 transition-colors md:p-4"

@@ -8,16 +8,19 @@ interface StatisticsCardsProps {
 }
 
 export default function StatisticsCards({ analytics }: StatisticsCardsProps) {
-  const ordersChange = getPercentageChangeData(analytics.ordersChange);
-  const revenueChange = getPercentageChangeData(analytics.revenueChange);
+  const totalOrders = analytics?.totalOrders || 0;
+  const totalRevenue = analytics?.totalRevenue || 0;
+
+  const ordersChange = getPercentageChangeData(analytics?.ordersChange);
+  const revenueChange = getPercentageChangeData(analytics?.revenueChange);
 
   const avgOrderValue =
-    analytics.totalOrders > 0
-      ? (analytics.totalRevenue / analytics.totalOrders).toFixed(2)
+    totalOrders > 0
+      ? (totalRevenue / totalOrders).toFixed(2)
       : "0.00";
 
   const completedOrders =
-    analytics.ordersByStatus.find((s) => s.status === "COMPLETED")?.count || 0;
+    analytics?.ordersByStatus?.find((s) => s.status === "COMPLETED")?.count || 0;
 
   return (
     <div className="mb-6 grid grid-cols-2 gap-4 md:mb-8 md:gap-6 lg:grid-cols-4">

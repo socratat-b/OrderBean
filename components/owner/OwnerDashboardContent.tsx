@@ -88,15 +88,15 @@ export default function OwnerDashboardContent() {
 
         {/* Two Column Layout: Popular Products & Orders by Status */}
         <div className="mb-4 grid grid-cols-1 gap-4 md:mb-6 md:gap-6 lg:grid-cols-2">
-          <PopularProductsSection popularProducts={analytics.popularProducts} />
+          <PopularProductsSection popularProducts={analytics.popularProducts || []} />
           <OrdersByStatusSection
-            ordersByStatus={analytics.ordersByStatus}
-            totalOrders={analytics.totalOrders}
+            ordersByStatus={analytics.ordersByStatus || []}
+            totalOrders={analytics.totalOrders || 0}
           />
         </div>
 
         {/* Recent Orders */}
-        <RecentOrdersSection recentOrders={analytics.recentOrders} />
+        <RecentOrdersSection recentOrders={analytics.recentOrders || []} />
       </div>
     </div>
   );

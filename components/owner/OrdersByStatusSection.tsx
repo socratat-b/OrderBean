@@ -12,6 +12,8 @@ export default function OrdersByStatusSection({
   ordersByStatus,
   totalOrders,
 }: OrdersByStatusSectionProps) {
+  const statusData = ordersByStatus || [];
+
   return (
     <div className="border-border bg-card rounded-xl border p-4 shadow-md md:p-6">
       <div className="mb-4 flex items-center justify-between">
@@ -19,11 +21,11 @@ export default function OrdersByStatusSection({
           Orders by Status
         </h2>
         <div className="bg-primary/10 rounded-full px-3 py-1">
-          <span className="text-primary text-xs font-bold">{totalOrders}</span>
+          <span className="text-primary text-xs font-bold">{totalOrders || 0}</span>
         </div>
       </div>
       <div className="space-y-3">
-        {ordersByStatus.map((item) => {
+        {statusData.map((item) => {
           const percentage = calculatePercentage(item.count, totalOrders);
 
           return (
