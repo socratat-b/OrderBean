@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { motion } from "motion/react";
 
 interface Product {
   id: string;
@@ -19,6 +20,30 @@ interface FeaturedProductsProps {
   onAddToCart: (product: Product) => void;
 }
 
+const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
+
+const sectionHeader = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: easeOut },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 40 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      delay: i * 0.15,
+      ease: easeOut,
+    },
+  }),
+};
+
 export default function FeaturedProducts({
   products,
   loading,
@@ -28,7 +53,13 @@ export default function FeaturedProducts({
     <section id="menu" className="bg-background scroll-mt-20 py-20">
       <div className="mx-auto max-w-7xl px-4 md:px-8 lg:px-10">
         {/* Section Header */}
-        <div className="text-center">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={sectionHeader}
+          className="text-center"
+        >
           <div className="bg-muted text-muted-foreground mb-4 inline-block rounded-full px-4 py-2 text-sm font-semibold">
             Our Menu
           </div>
@@ -39,7 +70,7 @@ export default function FeaturedProducts({
             Handcrafted with love, served with a smile. Discover our most
             popular items.
           </p>
-        </div>
+        </motion.div>
 
         {/* Products Grid */}
         {loading ? (
@@ -57,10 +88,16 @@ export default function FeaturedProducts({
           </div>
         ) : (
           <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {products.map((product) => (
-              <div
+            {products.map((product, i) => (
+              <motion.div
                 key={product.id}
-                className="group border-border bg-card relative overflow-hidden rounded-2xl border p-6 transition-all hover:-translate-y-1 hover:shadow-xl"
+                variants={cardVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }}
+                custom={i}
+                whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                className="group border-border bg-card relative overflow-hidden rounded-2xl border p-6 shadow-sm transition-shadow hover:shadow-xl"
               >
                 {product.imageUrl && (
                   <div className="mb-4 overflow-hidden rounded-xl">
@@ -86,19 +123,27 @@ export default function FeaturedProducts({
                   <span className="text-foreground text-2xl font-bold">
                     ₱{product.price.toFixed(2)}
                   </span>
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => onAddToCart(product)}
                     className="bg-primary text-primary-foreground hover:bg-primary-hover rounded-lg px-4 py-2 text-sm font-semibold transition-colors"
                   >
                     Order
-                  </button>
+                  </motion.button>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
 
-        <div className="mt-12 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-12 text-center"
+        >
           <Link
             href="/menu"
             className="border-primary bg-background text-foreground hover:bg-muted inline-flex items-center gap-2 rounded-xl border-2 px-8 py-4 text-base font-semibold transition-all"
@@ -119,7 +164,7 @@ export default function FeaturedProducts({
               />
             </svg>
           </Link>
-        </div>
+        </motion.div>
       </div>
     </section>
   );
