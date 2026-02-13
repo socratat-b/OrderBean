@@ -6,6 +6,7 @@ import { useToast } from "@/context/ToastContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 interface User {
   id: string;
@@ -17,6 +18,18 @@ interface User {
 interface CartClientProps {
   user: User | null;
 }
+
+const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeOut } },
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
 
 export default function CartClient({ user }: CartClientProps) {
   const { items, removeFromCart, updateQuantity, total, clearCart } = useCart();
@@ -90,7 +103,12 @@ export default function CartClient({ user }: CartClientProps) {
   if (items.length === 0) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-4">
-        <div className="text-center">
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: easeOut }}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -117,7 +135,7 @@ export default function CartClient({ user }: CartClientProps) {
           >
             Browse Menu
           </Link>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -125,10 +143,24 @@ export default function CartClient({ user }: CartClientProps) {
   return (
     <div className="min-h-dvh bg-background px-4 py-12">
       <div className="mx-auto max-w-4xl">
-        <h1 className="text-3xl font-bold text-foreground">Shopping Cart</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {items.length} {items.length === 1 ? "item" : "items"} in your cart
-        </p>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
+          <motion.h1
+            className="text-3xl font-bold text-foreground"
+            variants={fadeUp}
+          >
+            Shopping Cart
+          </motion.h1>
+          <motion.p
+            className="mt-2 text-sm text-muted-foreground"
+            variants={fadeUp}
+          >
+            {items.length} {items.length === 1 ? "item" : "items"} in your cart
+          </motion.p>
+        </motion.div>
 
         {error && (
           <div className="mt-4 rounded-lg bg-error/10 border border-error/20 p-4">
@@ -137,93 +169,108 @@ export default function CartClient({ user }: CartClientProps) {
         )}
 
         <div className="mt-8 space-y-4">
-          {items.map((item) => (
-            <div
-              key={item.product.id}
-              className="flex gap-4 rounded-lg border border-border bg-card p-4 shadow-sm"
-            >
-              {/* Product Image */}
-              {item.product.imageUrl && (
-                <img
-                  src={item.product.imageUrl}
-                  alt={item.product.name}
-                  className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
-                />
-              )}
+          <AnimatePresence mode="popLayout">
+            {items.map((item) => (
+              <motion.div
+                key={item.product.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -60, transition: { duration: 0.3 } }}
+                transition={{ duration: 0.4, ease: easeOut }}
+                className="flex gap-4 rounded-lg border border-border bg-card p-4 shadow-sm"
+              >
+                {/* Product Image */}
+                {item.product.imageUrl && (
+                  <img
+                    src={item.product.imageUrl}
+                    alt={item.product.name}
+                    className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
+                  />
+                )}
 
-              {/* Product Info */}
-              <div className="flex flex-1 flex-col justify-between min-w-0">
-                <div>
-                  <h3 className="font-semibold text-card-foreground">
-                    {item.product.name}
-                  </h3>
-                  {item.product.description && (
-                    <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-                      {item.product.description}
+                {/* Product Info */}
+                <div className="flex flex-1 flex-col justify-between min-w-0">
+                  <div>
+                    <h3 className="font-semibold text-card-foreground">
+                      {item.product.name}
+                    </h3>
+                    {item.product.description && (
+                      <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                        {item.product.description}
+                      </p>
+                    )}
+                    <p className="mt-2 text-sm font-medium text-primary">
+                      ₱{item.product.price.toFixed(2)} each
                     </p>
-                  )}
-                  <p className="mt-2 text-sm font-medium text-primary">
-                    ₱{item.product.price.toFixed(2)} each
-                  </p>
-                </div>
-
-                {/* Quantity Controls */}
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() =>
-                        updateQuantity(item.product.id, item.quantity - 1)
-                      }
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-card-foreground hover:bg-muted transition-colors"
-                    >
-                      -
-                    </button>
-                    <span className="w-8 text-center font-medium text-card-foreground">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() =>
-                        updateQuantity(item.product.id, item.quantity + 1)
-                      }
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-card-foreground hover:bg-muted transition-colors"
-                    >
-                      +
-                    </button>
                   </div>
 
-                  <span className="ml-auto font-semibold text-card-foreground">
-                    ₱{(item.product.price * item.quantity).toFixed(2)}
-                  </span>
-                </div>
-              </div>
+                  {/* Quantity Controls */}
+                  <div className="mt-3 flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        onClick={() =>
+                          updateQuantity(item.product.id, item.quantity - 1)
+                        }
+                        className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-card-foreground hover:bg-muted transition-colors"
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        -
+                      </motion.button>
+                      <span className="w-8 text-center font-medium text-card-foreground">
+                        {item.quantity}
+                      </span>
+                      <motion.button
+                        onClick={() =>
+                          updateQuantity(item.product.id, item.quantity + 1)
+                        }
+                        className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-card-foreground hover:bg-muted transition-colors"
+                        whileTap={{ scale: 0.9 }}
+                      >
+                        +
+                      </motion.button>
+                    </div>
 
-              {/* Remove Button - Fixed Position */}
-              <button
-                onClick={() => removeFromCart(item.product.id)}
-                className="flex-shrink-0 self-start text-error hover:text-error/80 transition-colors"
-                title="Remove from cart"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="h-6 w-6"
+                    <span className="ml-auto font-semibold text-card-foreground">
+                      ₱{(item.product.price * item.quantity).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Remove Button - Fixed Position */}
+                <motion.button
+                  onClick={() => removeFromCart(item.product.id)}
+                  className="flex-shrink-0 self-start text-error hover:text-error/80 transition-colors"
+                  title="Remove from cart"
+                  whileTap={{ scale: 0.9 }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-                  />
-                </svg>
-              </button>
-            </div>
-          ))}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="h-6 w-6"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+                    />
+                  </svg>
+                </motion.button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
         {/* Cart Summary */}
-        <div className="mt-8 rounded-lg border border-border bg-card p-6 shadow-sm">
+        <motion.div
+          className="mt-8 rounded-lg border border-border bg-card p-6 shadow-sm"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2, ease: easeOut }}
+        >
           <h2 className="text-lg font-semibold text-card-foreground">
             Order Summary
           </h2>
@@ -265,10 +312,11 @@ export default function CartClient({ user }: CartClientProps) {
           )}
 
           <div className="mt-6 space-y-3">
-            <button
+            <motion.button
               onClick={handleCheckout}
               disabled={loading}
               className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              whileTap={{ scale: 0.97 }}
             >
               {loading ? (
                 "Processing..."
@@ -293,14 +341,15 @@ export default function CartClient({ user }: CartClientProps) {
               ) : (
                 "Login to Checkout"
               )}
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
               onClick={handleClearCart}
               className="w-full rounded-lg border border-border px-6 py-3 text-sm font-semibold text-card-foreground hover:bg-muted transition-colors"
+              whileTap={{ scale: 0.97 }}
             >
               Clear Cart
-            </button>
+            </motion.button>
 
             <Link
               href="/menu"
@@ -309,36 +358,61 @@ export default function CartClient({ user }: CartClientProps) {
               Continue Shopping
             </Link>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Clear Cart Confirmation Modal */}
-      {showClearConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-lg bg-card p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-card-foreground">
-              Clear Cart?
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to clear all items from your cart? This action cannot be undone.
-            </p>
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => setShowClearConfirm(false)}
-                className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-card-foreground hover:bg-muted transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmClearCart}
-                className="flex-1 rounded-lg bg-error px-4 py-2 text-sm font-semibold text-white hover:bg-error/90 transition-colors"
-              >
-                Clear Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showClearConfirm && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Backdrop */}
+            <motion.div
+              className="absolute inset-0 bg-black/50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowClearConfirm(false)}
+            />
+            {/* Modal */}
+            <motion.div
+              className="relative w-full max-w-md rounded-lg bg-card p-6 shadow-xl"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.25, ease: easeOut }}
+            >
+              <h3 className="text-lg font-semibold text-card-foreground">
+                Clear Cart?
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Are you sure you want to clear all items from your cart? This action cannot be undone.
+              </p>
+              <div className="mt-6 flex gap-3">
+                <motion.button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 rounded-lg border border-border px-4 py-2 text-sm font-semibold text-card-foreground hover:bg-muted transition-colors"
+                  whileTap={{ scale: 0.97 }}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  onClick={confirmClearCart}
+                  className="flex-1 rounded-lg bg-error px-4 py-2 text-sm font-semibold text-white hover:bg-error/90 transition-colors"
+                  whileTap={{ scale: 0.97 }}
+                >
+                  Clear Cart
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

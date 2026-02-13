@@ -3,6 +3,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { motion } from "motion/react";
 
 interface OrderItem {
   id: string;
@@ -26,6 +27,23 @@ interface Order {
 interface OrdersClientProps {
   orders: Order[];
 }
+
+const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeOut } },
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+};
+
+const cardItem = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: easeOut } },
+};
 
 export default function OrdersClient({ orders }: OrdersClientProps) {
   const router = useRouter();
@@ -70,7 +88,12 @@ export default function OrdersClient({ orders }: OrdersClientProps) {
   if (orders.length === 0) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-4">
-        <div className="text-center">
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: easeOut }}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -97,7 +120,7 @@ export default function OrdersClient({ orders }: OrdersClientProps) {
           >
             Browse Menu
           </a>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -105,16 +128,37 @@ export default function OrdersClient({ orders }: OrdersClientProps) {
   return (
     <div className="min-h-dvh bg-background px-4 py-12">
       <div className="mx-auto max-w-4xl">
-        <h1 className="text-3xl font-bold text-foreground">My Orders</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {orders.length} {orders.length === 1 ? "order" : "orders"} total
-        </p>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
+          <motion.h1
+            className="text-3xl font-bold text-foreground"
+            variants={fadeUp}
+          >
+            My Orders
+          </motion.h1>
+          <motion.p
+            className="mt-2 text-sm text-muted-foreground"
+            variants={fadeUp}
+          >
+            {orders.length} {orders.length === 1 ? "order" : "orders"} total
+          </motion.p>
+        </motion.div>
 
-        <div className="mt-8 space-y-6">
+        <motion.div
+          className="mt-8 space-y-6"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={staggerContainer}
+        >
           {orders.map((order) => (
-            <div
+            <motion.div
               key={order.id}
               className="overflow-hidden rounded-lg border border-border bg-card shadow-sm"
+              variants={cardItem}
             >
               {/* Order Header */}
               <div className="flex items-center justify-between border-b border-border bg-muted px-6 py-4">
@@ -180,9 +224,9 @@ export default function OrdersClient({ orders }: OrdersClientProps) {
                   View Details →
                 </button>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

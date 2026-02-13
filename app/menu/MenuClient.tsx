@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
+import { motion, AnimatePresence } from "motion/react";
 
 interface Product {
   id: string;
@@ -19,6 +20,23 @@ interface Product {
 interface MenuClientProps {
   initialProducts: Product[];
 }
+
+const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: easeOut } },
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06 } },
+};
+
+const cardItem = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: easeOut } },
+};
 
 export default function MenuClient({ initialProducts }: MenuClientProps) {
   const router = useRouter();
@@ -50,19 +68,6 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
     };
   }, [isDropdownOpen]);
 
-  // TODO: Add real-time listener when implementing Phase 7
-  // useEffect(() => {
-  //   // When you add Supabase/Pusher/WebSocket:
-  //   const subscription = supabase
-  //     .channel('products')
-  //     .on('postgres_changes', { event: '*', schema: 'public', table: 'Product' }, () => {
-  //       router.refresh() // Refetch server component data
-  //     })
-  //     .subscribe()
-  //
-  //   return () => subscription.unsubscribe()
-  // }, [router])
-
   // Get unique categories
   const categories = ["All", ...new Set(initialProducts.map((p) => p.category))];
 
@@ -76,17 +81,33 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
     <div className="min-h-dvh bg-background px-4 py-12 md:px-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl">
+        <motion.div
+          className="mb-10 text-center"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
+          <motion.h1
+            className="text-4xl font-bold tracking-tight text-foreground md:text-5xl"
+            variants={fadeUp}
+          >
             Our Menu
-          </h1>
-          <p className="mt-3 text-lg text-muted-foreground">
+          </motion.h1>
+          <motion.p
+            className="mt-3 text-lg text-muted-foreground"
+            variants={fadeUp}
+          >
             Discover our selection of delicious coffee and pastries
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
         {/* Category Filter - Mobile (Custom Dropdown) */}
-        <div className="mb-6 md:hidden">
+        <motion.div
+          className="mb-6 md:hidden"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2, ease: easeOut }}
+        >
           <label className="block text-sm font-semibold text-foreground mb-3 text-center">
             Filter by Category
           </label>
@@ -147,12 +168,17 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Category Filter - Desktop (Buttons) */}
-        <div className="mb-8 hidden md:flex flex-wrap justify-center gap-3">
+        <motion.div
+          className="mb-8 hidden md:flex flex-wrap justify-center gap-3"
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
           {categories.map((category) => (
-            <button
+            <motion.button
               key={category}
               onClick={() => setSelectedCategory(category)}
               className={`rounded-full px-6 py-2.5 text-sm font-semibold transition-all ${
@@ -160,31 +186,52 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
                   ? "bg-primary text-primary-foreground shadow-md"
                   : "bg-card text-card-foreground border border-border shadow-sm hover:bg-muted"
               }`}
+              variants={fadeUp}
+              whileTap={{ scale: 0.95 }}
             >
               {category}
-            </button>
+            </motion.button>
           ))}
-        </div>
+        </motion.div>
 
         {/* Products Count */}
-        <p className="mb-6 text-center text-sm text-muted-foreground">
+        <motion.p
+          className="mb-6 text-center text-sm text-muted-foreground"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+        >
           {filteredProducts.length}{" "}
           {filteredProducts.length === 1 ? "item" : "items"}
-        </p>
+        </motion.p>
 
         {/* Products Grid */}
         {filteredProducts.length === 0 ? (
-          <div className="py-20 text-center">
+          <motion.div
+            className="py-20 text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+          >
             <p className="text-lg text-muted-foreground">
               No products found in this category.
             </p>
-          </div>
+          </motion.div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <motion.div
+            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            key={selectedCategory}
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+          >
             {filteredProducts.map((product) => (
-              <div
+              <motion.div
                 key={product.id}
-                className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-lg"
+                className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-shadow hover:shadow-lg"
+                variants={cardItem}
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.2 }}
               >
                 {/* Product Image */}
                 <div className="relative aspect-square overflow-hidden bg-muted">
@@ -252,7 +299,7 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
 
                   {/* Card Footer - Add to Cart Button */}
                   <div className="border-t border-border pt-4 mt-auto">
-                    <button
+                    <motion.button
                       onClick={() => handleAddToCart(product)}
                       disabled={!product.available}
                       className={`w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
@@ -260,14 +307,15 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
                           ? "bg-primary text-primary-foreground hover:bg-primary-hover"
                           : "cursor-not-allowed bg-muted text-muted-foreground"
                       }`}
+                      whileTap={product.available ? { scale: 0.95 } : undefined}
                     >
                       {product.available ? "Add to Cart" : "Out of Stock"}
-                    </button>
+                    </motion.button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
     </div>
