@@ -1,7 +1,20 @@
 "use client";
 
+import { motion } from "motion/react";
 import { OrdersByStatus } from "@/types/owner";
 import { getStatusColor, calculatePercentage } from "@/lib/utils";
+
+const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const listItem = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: easeOut } },
+};
 
 interface OrdersByStatusSectionProps {
   ordersByStatus: OrdersByStatus[];
@@ -24,12 +37,12 @@ export default function OrdersByStatusSection({
           <span className="text-primary text-xs font-bold">{totalOrders || 0}</span>
         </div>
       </div>
-      <div className="space-y-3">
+      <motion.div className="space-y-3" initial="hidden" animate="visible" variants={staggerContainer}>
         {statusData.map((item) => {
           const percentage = calculatePercentage(item.count, totalOrders);
 
           return (
-            <div key={item.status}>
+            <motion.div key={item.status} variants={listItem}>
               <div className="mb-1 flex items-center justify-between">
                 <span
                   className={`inline-block rounded-full border px-3 py-1 text-xs font-semibold ${getStatusColor(
@@ -48,10 +61,10 @@ export default function OrdersByStatusSection({
                   style={{ width: `${percentage}%` }}
                 />
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,7 +1,20 @@
 "use client";
 
+import { motion } from "motion/react";
 import { Analytics } from "@/types/owner";
 import { getPercentageChangeData, formatCurrency } from "@/lib/utils";
+
+const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const cardItem = {
+  hidden: { opacity: 0, y: 20, scale: 0.97 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: easeOut } },
+};
 
 interface StatisticsCardsProps {
   analytics: Analytics;
@@ -23,9 +36,14 @@ export default function StatisticsCards({ analytics }: StatisticsCardsProps) {
     analytics?.ordersByStatus?.find((s) => s.status === "COMPLETED")?.count || 0;
 
   return (
-    <div className="mb-6 grid grid-cols-2 gap-4 md:mb-8 md:gap-6 lg:grid-cols-4">
+    <motion.div
+      className="mb-6 grid grid-cols-2 gap-4 md:mb-8 md:gap-6 lg:grid-cols-4"
+      initial="hidden"
+      animate="visible"
+      variants={staggerContainer}
+    >
       {/* Total Orders */}
-      <div className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
+      <motion.div variants={cardItem} className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex-1">
             <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase md:text-sm">
@@ -67,10 +85,10 @@ export default function StatisticsCards({ analytics }: StatisticsCardsProps) {
             </svg>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Total Revenue */}
-      <div className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
+      <motion.div variants={cardItem} className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex-1">
             <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase md:text-sm">
@@ -112,10 +130,10 @@ export default function StatisticsCards({ analytics }: StatisticsCardsProps) {
             </svg>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Average Order Value */}
-      <div className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
+      <motion.div variants={cardItem} className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex-1">
             <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase md:text-sm">
@@ -142,10 +160,10 @@ export default function StatisticsCards({ analytics }: StatisticsCardsProps) {
             </svg>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Completed Orders */}
-      <div className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
+      <motion.div variants={cardItem} className="border-border bg-card rounded-xl border p-4 shadow-md transition-shadow hover:shadow-lg md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex-1">
             <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase md:text-sm">
@@ -172,7 +190,7 @@ export default function StatisticsCards({ analytics }: StatisticsCardsProps) {
             </svg>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -1,7 +1,20 @@
 "use client";
 
+import { motion } from "motion/react";
 import { RecentOrder } from "@/types/owner";
 import { getStatusColor, formatOrderDate, formatCurrency } from "@/lib/utils";
+
+const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.05 } },
+};
+
+const listItem = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: easeOut } },
+};
 
 interface RecentOrdersSectionProps {
   recentOrders: RecentOrder[];
@@ -25,10 +38,11 @@ export default function RecentOrdersSection({ recentOrders }: RecentOrdersSectio
       ) : (
         <>
           {/* Mobile: Card View */}
-          <div className="space-y-3 md:hidden">
+          <motion.div className="space-y-3 md:hidden" initial="hidden" animate="visible" variants={staggerContainer}>
             {orders.map((order) => (
-              <div
+              <motion.div
                 key={order.id}
+                variants={listItem}
                 className="border-border hover:bg-muted rounded-lg border p-3 transition-colors"
               >
                 <div className="mb-2 flex items-start justify-between">
@@ -57,9 +71,9 @@ export default function RecentOrdersSection({ recentOrders }: RecentOrdersSectio
                     {formatCurrency(order.total)}
                   </p>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           {/* Desktop: Table View */}
           <div className="hidden overflow-x-auto md:block">
@@ -74,10 +88,11 @@ export default function RecentOrdersSection({ recentOrders }: RecentOrdersSectio
                   <th className="pb-3">Date</th>
                 </tr>
               </thead>
-              <tbody className="text-sm">
+              <motion.tbody className="text-sm" initial="hidden" animate="visible" variants={staggerContainer}>
                 {orders.map((order) => (
-                  <tr
+                  <motion.tr
                     key={order.id}
+                    variants={listItem}
                     className="border-border hover:bg-muted border-b transition-colors"
                   >
                     <td className="text-muted-foreground py-3 font-mono text-xs">
@@ -105,9 +120,9 @@ export default function RecentOrdersSection({ recentOrders }: RecentOrdersSectio
                     <td className="text-muted-foreground py-3 text-xs">
                       {formatOrderDate(order.createdAt)}
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
-              </tbody>
+              </motion.tbody>
             </table>
           </div>
         </>

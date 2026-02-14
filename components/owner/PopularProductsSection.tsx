@@ -1,8 +1,21 @@
 "use client";
 
+import { motion } from "motion/react";
 import Image from "next/image";
 import { PopularProduct } from "@/types/owner";
 import { formatCurrency } from "@/lib/utils";
+
+const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.06 } },
+};
+
+const listItem = {
+  hidden: { opacity: 0, x: -15 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.35, ease: easeOut } },
+};
 
 interface PopularProductsSectionProps {
   popularProducts: PopularProduct[];
@@ -24,10 +37,11 @@ export default function PopularProductsSection({ popularProducts }: PopularProdu
       {products.length === 0 ? (
         <p className="text-muted-foreground py-8 text-center">No orders yet</p>
       ) : (
-        <div className="space-y-3">
+        <motion.div className="space-y-3" initial="hidden" animate="visible" variants={staggerContainer}>
           {products.map((item, index) => (
-            <div
+            <motion.div
               key={item.product.id}
+              variants={listItem}
               className="border-border hover:bg-muted flex items-center gap-3 rounded-lg border p-3 transition-colors md:p-4"
             >
               <div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold md:h-10 md:w-10 md:text-base">
@@ -58,9 +72,9 @@ export default function PopularProductsSection({ popularProducts }: PopularProdu
                   {formatCurrency(item.product.price)}
                 </p>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );

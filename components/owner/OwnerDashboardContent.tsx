@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "motion/react";
 import { useOwnerAnalytics } from "@/hooks/useOwnerAnalytics";
 import DateRangePicker from "@/components/DateRangePicker";
 import RevenueChart from "@/components/charts/RevenueChart";
@@ -9,6 +10,17 @@ import StatisticsCards from "@/components/owner/StatisticsCards";
 import PopularProductsSection from "@/components/owner/PopularProductsSection";
 import OrdersByStatusSection from "@/components/owner/OrdersByStatusSection";
 import RecentOrdersSection from "@/components/owner/RecentOrdersSection";
+
+const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (delay: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, delay, ease: easeOut },
+  }),
+};
 
 export default function OwnerDashboardContent() {
   const {
@@ -61,42 +73,54 @@ export default function OwnerDashboardContent() {
     <div className="bg-background min-h-screen px-4 py-6 md:py-8">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
-        <DashboardHeader
-          isConnected={isConnected}
-          refreshing={refreshing}
-          analytics={analytics}
-          searchParams={searchParams}
-        />
+        <motion.div custom={0} initial="hidden" animate="visible" variants={fadeUp}>
+          <DashboardHeader
+            isConnected={isConnected}
+            refreshing={refreshing}
+            analytics={analytics}
+            searchParams={searchParams}
+          />
+        </motion.div>
 
         {/* Date Range Picker */}
-        <div className="mb-6 md:mb-8">
+        <motion.div className="mb-6 md:mb-8" custom={0.1} initial="hidden" animate="visible" variants={fadeUp}>
           <DateRangePicker />
-        </div>
+        </motion.div>
 
         {/* Inventory Alert */}
-        <div className="mb-6 md:mb-8">
+        <motion.div className="mb-6 md:mb-8" custom={0.15} initial="hidden" animate="visible" variants={fadeUp}>
           <InventoryAlert />
-        </div>
+        </motion.div>
 
         {/* Statistics Cards */}
-        <StatisticsCards analytics={analytics} />
+        <motion.div custom={0.2} initial="hidden" animate="visible" variants={fadeUp}>
+          <StatisticsCards analytics={analytics} />
+        </motion.div>
 
         {/* Revenue Chart */}
-        <div className="mb-4 md:mb-6">
+        <motion.div className="mb-4 md:mb-6" custom={0.3} initial="hidden" animate="visible" variants={fadeUp}>
           <RevenueChart data={analytics.revenueByDay || []} />
-        </div>
+        </motion.div>
 
         {/* Two Column Layout: Popular Products & Orders by Status */}
-        <div className="mb-4 grid grid-cols-1 gap-4 md:mb-6 md:gap-6 lg:grid-cols-2">
+        <motion.div
+          className="mb-4 grid grid-cols-1 gap-4 md:mb-6 md:gap-6 lg:grid-cols-2"
+          custom={0.4}
+          initial="hidden"
+          animate="visible"
+          variants={fadeUp}
+        >
           <PopularProductsSection popularProducts={analytics.popularProducts || []} />
           <OrdersByStatusSection
             ordersByStatus={analytics.ordersByStatus || []}
             totalOrders={analytics.totalOrders || 0}
           />
-        </div>
+        </motion.div>
 
         {/* Recent Orders */}
-        <RecentOrdersSection recentOrders={analytics.recentOrders || []} />
+        <motion.div custom={0.5} initial="hidden" animate="visible" variants={fadeUp}>
+          <RecentOrdersSection recentOrders={analytics.recentOrders || []} />
+        </motion.div>
       </div>
     </div>
   );
