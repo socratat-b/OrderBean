@@ -54,7 +54,15 @@ export async function GET(request: NextRequest) {
         },
         orderItems: {
           include: {
-            product: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                imageUrl: true,
+                price: true,
+                category: true,
+              },
+            },
           },
         },
       },

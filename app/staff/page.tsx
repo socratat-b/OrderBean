@@ -14,6 +14,7 @@ async function getOrders() {
   }
 
   const orders = await prisma.order.findMany({
+    take: 200, // Limit initial load for performance
     include: {
       user: {
         select: {
@@ -59,12 +60,12 @@ export default async function StaffPage() {
           <p className="text-error font-semibold">
             {error instanceof Error ? error.message : "Failed to load orders"}
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 rounded-xl bg-primary px-6 py-3 text-primary-foreground font-bold hover:opacity-90 transition-all shadow-md hover:shadow-lg"
+          <a
+            href="/staff"
+            className="mt-4 inline-block rounded-xl bg-primary px-6 py-3 text-primary-foreground font-bold hover:opacity-90 transition-all shadow-md hover:shadow-lg"
           >
             Retry
-          </button>
+          </a>
         </div>
       </div>
     );

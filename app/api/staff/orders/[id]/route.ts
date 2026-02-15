@@ -62,6 +62,25 @@ export async function PATCH(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    // Validate status transitions - prevent invalid workflow changes
+    const validTransitions: Record<string, string[]> = {
+      PENDING: ["PREPARING", "CANCELLED"],
+      PREPARING: ["READY", "CANCELLED"],
+      READY: ["COMPLETED", "CANCELLED"],
+      COMPLETED: [], // Terminal state
+      CANCELLED: [], // Terminal state
+    };
+
+    const allowed = validTransitions[existingOrder.status] || [];
+    if (!allowed.includes(status)) {
+      return NextResponse.json(
+        {
+          error: `Cannot change status from ${existingOrder.status} to ${status}`,
+        },
+        { status: 400 },
+      );
+    }
+
     // Update order status
     const updatedOrder = await prisma.order.update({
       where: { id },
@@ -76,7 +95,15 @@ export async function PATCH(
         },
         orderItems: {
           include: {
-            product: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                imageUrl: true,
+                price: true,
+                category: true,
+              },
+            },
           },
         },
       },
