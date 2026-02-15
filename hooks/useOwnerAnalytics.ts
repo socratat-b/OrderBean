@@ -97,13 +97,17 @@ export function useOwnerAnalytics() {
   );
 
   // Connect to SSE for real-time updates
-  const { isConnected } = useOwnerOrdersSSE((event) => {
-    console.log("[useOwnerAnalytics] SSE event received:", event);
-    // Refresh analytics when order events occur
-    if (event.type === "order_created" || event.type === "order_updated") {
-      fetchAnalytics(false);
-    }
-  });
+  const handleSSEEvent = useCallback(
+    (event: { type: string }) => {
+      console.log("[useOwnerAnalytics] SSE event received:", event);
+      if (event.type === "order_created" || event.type === "order_updated") {
+        fetchAnalytics(false);
+      }
+    },
+    [fetchAnalytics]
+  );
+
+  const { isConnected } = useOwnerOrdersSSE(handleSSEEvent, handleSSEEvent);
 
   // Mount effect
   useEffect(() => {

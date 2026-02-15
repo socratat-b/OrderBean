@@ -239,6 +239,11 @@ export default function ExportButton({ data, dateRange }: ExportButtonProps) {
 
       {/* Dropdown Menu */}
       {showMenu && !isExporting && (
+        <>
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setShowMenu(false)}
+        />
         <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-xl border border-border bg-card shadow-xl">
           <div className="p-2">
             <button
@@ -344,14 +349,7 @@ export default function ExportButton({ data, dateRange }: ExportButtonProps) {
             </button>
           </div>
         </div>
-      )}
-
-      {/* Overlay to close menu */}
-      {showMenu && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowMenu(false)}
-        />
+        </>
       )}
     </div>
   );
