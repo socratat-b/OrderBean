@@ -3,9 +3,44 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { existsSync } from "fs";
+import crypto from "crypto";
+import { getSession } from "@/lib/dal";
+
+// Allowed image MIME types
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+]);
+
+// Allowed file extensions
+const ALLOWED_EXTENSIONS = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".svg",
+]);
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication - only OWNER can upload
+    const session = await getSession();
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (session.role !== "OWNER") {
+      return NextResponse.json(
+        { error: "Forbidden - Owner access required" },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
@@ -16,10 +51,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
+    // Validate MIME type against allowlist
+    if (!ALLOWED_MIME_TYPES.has(file.type)) {
       return NextResponse.json(
-        { error: "File must be an image" },
+        { error: "File must be an image (JPEG, PNG, GIF, WebP, or SVG)" },
+        { status: 400 }
+      );
+    }
+
+    // Validate file extension
+    const originalExtension = path.extname(file.name).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.has(originalExtension)) {
+      return NextResponse.json(
+        { error: "Invalid file extension" },
         { status: 400 }
       );
     }
@@ -36,10 +80,9 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const filename = `${timestamp}-${originalName}`;
+    // Generate a safe, random filename (avoid using user-provided name in filesystem path)
+    const randomId = crypto.randomBytes(16).toString("hex");
+    const filename = `${Date.now()}-${randomId}${originalExtension}`;
 
     // Create uploads directory if it doesn't exist
     const uploadsDir = path.join(process.cwd(), "public", "uploads");
@@ -47,8 +90,16 @@ export async function POST(request: NextRequest) {
       await mkdir(uploadsDir, { recursive: true });
     }
 
+    // Ensure the resolved filepath stays within uploads directory (prevent path traversal)
+    const filepath = path.resolve(uploadsDir, filename);
+    if (!filepath.startsWith(path.resolve(uploadsDir))) {
+      return NextResponse.json(
+        { error: "Invalid filename" },
+        { status: 400 }
+      );
+    }
+
     // Save file
-    const filepath = path.join(uploadsDir, filename);
     await writeFile(filepath, buffer);
 
     // Return public URL

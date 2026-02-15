@@ -81,9 +81,28 @@ export async function PATCH(
       );
     }
 
+    // Only allow known fields to be updated (prevent injection of arbitrary fields)
+    const updateData: Record<string, unknown> = {};
+    const allowedFields: (keyof UpdateProductBody)[] = [
+      "name",
+      "description",
+      "price",
+      "category",
+      "imageUrl",
+      "available",
+      "stockQuantity",
+      "lowStockThreshold",
+      "stockEnabled",
+    ];
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updateData[field] = body[field];
+      }
+    }
+
     const updatedProduct = await prisma.product.update({
       where: { id },
-      data: body,
+      data: updateData,
     });
 
     // Invalidate products cache for ISR

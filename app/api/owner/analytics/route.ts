@@ -30,11 +30,26 @@ export async function GET(request: NextRequest) {
     const endDateParam = searchParams.get("endDate");
 
     let dateFilter: { createdAt?: { gte: Date; lte: Date } } = {};
-    let previousPeriodFilter: { createdAt?: { gte: Date; lte: Date } } = {};
+    let previousPeriodFilter: { createdAt?: { gte: Date; lte: Date } } | null = null;
 
     if (startDateParam && endDateParam) {
       const startDate = startOfDay(new Date(startDateParam));
       const endDate = endOfDay(new Date(endDateParam));
+
+      // Validate parsed dates
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return NextResponse.json(
+          { error: "Invalid date format. Use YYYY-MM-DD." },
+          { status: 400 },
+        );
+      }
+
+      if (startDate > endDate) {
+        return NextResponse.json(
+          { error: "Start date must be before end date." },
+          { status: 400 },
+        );
+      }
 
       // Current period filter
       dateFilter = {
@@ -64,18 +79,20 @@ export async function GET(request: NextRequest) {
       where: dateFilter,
     });
 
-    // Get total orders count for previous period (for comparison)
-    const previousPeriodOrders = await prisma.order.count({
-      where: previousPeriodFilter,
-    });
+    // Get total orders count for previous period (for comparison) - only when date filter is active
+    let ordersChange = 0;
+    if (previousPeriodFilter) {
+      const previousPeriodOrders = await prisma.order.count({
+        where: previousPeriodFilter,
+      });
 
-    // Calculate percentage change in orders
-    const ordersChange =
-      previousPeriodOrders > 0
-        ? ((totalOrders - previousPeriodOrders) / previousPeriodOrders) * 100
-        : totalOrders > 0
-        ? 100
-        : 0;
+      ordersChange =
+        previousPeriodOrders > 0
+          ? ((totalOrders - previousPeriodOrders) / previousPeriodOrders) * 100
+          : totalOrders > 0
+          ? 100
+          : 0;
+    }
 
     // Get total revenue for current period
     const revenueData = await prisma.order.aggregate({
@@ -86,22 +103,24 @@ export async function GET(request: NextRequest) {
     });
     const totalRevenue = revenueData._sum.total || 0;
 
-    // Get previous period revenue
-    const previousRevenueData = await prisma.order.aggregate({
-      where: previousPeriodFilter,
-      _sum: {
-        total: true,
-      },
-    });
-    const previousRevenue = previousRevenueData._sum.total || 0;
+    // Get previous period revenue - only when date filter is active
+    let revenueChange = 0;
+    if (previousPeriodFilter) {
+      const previousRevenueData = await prisma.order.aggregate({
+        where: previousPeriodFilter,
+        _sum: {
+          total: true,
+        },
+      });
+      const previousRevenue = previousRevenueData._sum.total || 0;
 
-    // Calculate percentage change in revenue
-    const revenueChange =
-      previousRevenue > 0
-        ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
-        : totalRevenue > 0
-        ? 100
-        : 0;
+      revenueChange =
+        previousRevenue > 0
+          ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
+          : totalRevenue > 0
+          ? 100
+          : 0;
+    }
 
     // Get orders by status
     const ordersByStatus = await prisma.order.groupBy({
@@ -207,7 +226,7 @@ export async function GET(request: NextRequest) {
               COUNT(*)::int as "orderCount"
             FROM "Order"
             GROUP BY DATE("createdAt")
-            ORDER BY date DESC
+            ORDER BY date ASC
             LIMIT 90
           `
         );
