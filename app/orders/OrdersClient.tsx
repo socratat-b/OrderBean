@@ -2,7 +2,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "motion/react";
 
 interface OrderItem {
@@ -24,8 +24,16 @@ interface Order {
   orderItems: OrderItem[];
 }
 
+interface CursorPagination {
+  total: number;
+  limit: number;
+  nextCursor?: string;
+  hasMore: boolean;
+}
+
 interface OrdersClientProps {
-  orders: Order[];
+  initialOrders: Order[];
+  initialPagination: CursorPagination;
 }
 
 const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
@@ -45,8 +53,11 @@ const cardItem = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: easeOut } },
 };
 
-export default function OrdersClient({ orders }: OrdersClientProps) {
+export default function OrdersClient({ initialOrders, initialPagination }: OrdersClientProps) {
   const router = useRouter();
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [pagination, setPagination] = useState<CursorPagination>(initialPagination);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Auto-refresh when window regains focus (simple real-time approach)
   useEffect(() => {
@@ -57,6 +68,27 @@ export default function OrdersClient({ orders }: OrdersClientProps) {
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, [router]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !pagination.hasMore || !pagination.nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const params = new URLSearchParams({
+        cursor: pagination.nextCursor,
+        limit: pagination.limit.toString(),
+      });
+      const res = await fetch(`/api/orders?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setOrders((prev) => [...prev, ...data.orders]);
+        setPagination(data.pagination);
+      }
+    } catch (err) {
+      console.error("Failed to load more orders:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, pagination]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -143,7 +175,7 @@ export default function OrdersClient({ orders }: OrdersClientProps) {
             className="mt-2 text-sm text-muted-foreground"
             variants={fadeUp}
           >
-            {orders.length} {orders.length === 1 ? "order" : "orders"} total
+            {pagination.total} {pagination.total === 1 ? "order" : "orders"} total
           </motion.p>
         </motion.div>
 
@@ -227,6 +259,32 @@ export default function OrdersClient({ orders }: OrdersClientProps) {
             </motion.div>
           ))}
         </motion.div>
+
+        {/* Load More Button */}
+        {pagination.hasMore && (
+          <div className="mt-8 flex justify-center">
+            <motion.button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="rounded-lg bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground shadow-md hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              {loadingMore ? (
+                <span className="flex items-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Loading...
+                </span>
+              ) : (
+                `Load More Orders (${orders.length} of ${pagination.total})`
+              )}
+            </motion.button>
+          </div>
+        )}
       </div>
     </div>
   );
