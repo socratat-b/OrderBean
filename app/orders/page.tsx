@@ -4,24 +4,43 @@ import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import OrdersClient from "./OrdersClient";
 
-// Cached function for fetching user's orders
-// Cache for 1 minute since orders update more frequently than products
+const ORDERS_PER_PAGE = 10;
+
+// Cached function for fetching user's orders (first page)
 async function getCachedOrders(userId: string) {
   const getCachedOrdersForUser = unstable_cache(
     async () => {
-      return await prisma.order.findMany({
-        where: { userId },
-        include: {
-          orderItems: {
-            include: {
-              product: true,
+      const [orders, total] = await Promise.all([
+        prisma.order.findMany({
+          where: { userId },
+          include: {
+            orderItems: {
+              include: {
+                product: true,
+              },
             },
           },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: ORDERS_PER_PAGE + 1,
+        }),
+        prisma.order.count({ where: { userId } }),
+      ]);
+
+      const hasMore = orders.length > ORDERS_PER_PAGE;
+      const data = hasMore ? orders.slice(0, ORDERS_PER_PAGE) : orders;
+      const nextCursor = hasMore ? data[data.length - 1].id : undefined;
+
+      return {
+        orders: data,
+        pagination: {
+          total,
+          limit: ORDERS_PER_PAGE,
+          nextCursor,
+          hasMore,
         },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+      };
     },
     [`user-orders-${userId}`], // User-specific cache key
     {
@@ -36,7 +55,7 @@ async function getCachedOrders(userId: string) {
 export default async function OrdersPage() {
   // Verify session and get user ID
   const session = await verifySession();
-  const orders = await getCachedOrders(session.userId);
+  const { orders, pagination } = await getCachedOrders(session.userId);
 
-  return <OrdersClient orders={orders} />;
+  return <OrdersClient initialOrders={orders} initialPagination={pagination} />;
 }
