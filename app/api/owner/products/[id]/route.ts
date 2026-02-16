@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/dal";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimitWrite } from "@/lib/rate-limit";
 
 interface UpdateProductBody {
   name?: string;
@@ -38,6 +39,9 @@ export async function PATCH(
         { status: 403 },
       );
     }
+
+    const limitedPatch = await rateLimitWrite(session.userId);
+    if (limitedPatch) return limitedPatch;
 
     const body: UpdateProductBody = await request.json();
 
@@ -145,6 +149,9 @@ export async function DELETE(
         { status: 403 },
       );
     }
+
+    const limitedDelete = await rateLimitWrite(session.userId);
+    if (limitedDelete) return limitedDelete;
 
     // Check if product exists
     const existingProduct = await prisma.product.findUnique({
