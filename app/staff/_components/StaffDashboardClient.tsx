@@ -28,12 +28,22 @@ const cardItem = {
 
 const STATUS_FILTERS: OrderStatus[] = ["ALL", "PENDING", "PREPARING", "READY", "COMPLETED", "CANCELLED"];
 
-interface StaffDashboardClientProps {
-  initialOrders: Order[];
+interface CursorPagination {
+  total: number;
+  limit: number;
+  nextCursor?: string;
+  hasMore: boolean;
 }
 
-export default function StaffDashboardClient({ initialOrders }: StaffDashboardClientProps) {
+interface StaffDashboardClientProps {
+  initialOrders: Order[];
+  initialPagination: CursorPagination;
+}
+
+export default function StaffDashboardClient({ initialOrders, initialPagination }: StaffDashboardClientProps) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [pagination, setPagination] = useState<CursorPagination>(initialPagination);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [searchFilteredOrders, setSearchFilteredOrders] = useState<Order[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus>("ALL");
@@ -89,15 +99,48 @@ export default function StaffDashboardClient({ initialOrders }: StaffDashboardCl
 
   const fetchOrders = useCallback(async () => {
     try {
-      const response = await fetch("/api/staff/orders");
+      const response = await fetch(`/api/staff/orders?limit=${pagination.limit}`);
       if (response.ok) {
         const data = await response.json();
-        setOrders(data.orders);
+        // Merge new orders with existing - prepend truly new ones, update existing
+        setOrders((prev) => {
+          const existingIds = new Set(prev.map((o) => o.id));
+          const newOrders = data.orders.filter((o: Order) => !existingIds.has(o.id));
+          const updatedPrev = prev.map((existing) => {
+            const updated = data.orders.find((o: Order) => o.id === existing.id);
+            return updated || existing;
+          });
+          return [...newOrders, ...updatedPrev];
+        });
       }
     } catch (err) {
       console.error("Failed to fetch orders:", err);
     }
-  }, []);
+  }, [pagination.limit]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !pagination.hasMore || !pagination.nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const params = new URLSearchParams({
+        cursor: pagination.nextCursor,
+        limit: pagination.limit.toString(),
+      });
+      if (selectedStatus !== "ALL") {
+        params.set("status", selectedStatus);
+      }
+      const res = await fetch(`/api/staff/orders?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setOrders((prev) => [...prev, ...data.orders]);
+        setPagination(data.pagination);
+      }
+    } catch (err) {
+      console.error("Failed to load more orders:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, pagination, selectedStatus]);
 
   const handleOrderCreated = useCallback(() => {
     console.log("[Staff] Order created event");
@@ -295,6 +338,29 @@ export default function StaffDashboardClient({ initialOrders }: StaffDashboardCl
               ))}
             </AnimatePresence>
           </motion.div>
+        )}
+
+        {/* Load More Button */}
+        {pagination.hasMore && (
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="rounded-xl bg-primary px-8 py-3 text-sm font-bold text-primary-foreground shadow-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {loadingMore ? (
+                <span className="flex items-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Loading...
+                </span>
+              ) : (
+                `Load More Orders (${orders.length} of ${pagination.total})`
+              )}
+            </button>
+          </div>
         )}
       </div>
     </div>
