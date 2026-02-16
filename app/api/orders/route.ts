@@ -4,6 +4,7 @@ import { getSession } from "@/lib/dal";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { orderEvents, ORDER_EVENTS } from "@/lib/events";
+import { rateLimitByUser, rateLimitWrite } from "@/lib/rate-limit";
 
 // Define proper types
 interface OrderItemInput {
@@ -25,26 +26,53 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const limited = await rateLimitByUser(session.userId);
+    if (limited) return limited;
+
     const userId = session.userId;
 
-    const orders = await prisma.order.findMany({
-      where: { userId },
-      include: {
-        orderItems: {
-          include: {
-            product: true,
+    const { searchParams } = new URL(request.url);
+    const cursor = searchParams.get("cursor");
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "10", 10)));
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where: { userId },
+        include: {
+          orderItems: {
+            include: {
+              product: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: limit + 1, // Fetch one extra to check if there's more
+        ...(cursor
+          ? {
+              cursor: { id: cursor },
+              skip: 1, // Skip the cursor itself
+            }
+          : {}),
+      }),
+      prisma.order.count({ where: { userId } }),
+    ]);
+
+    const hasMore = orders.length > limit;
+    const data = hasMore ? orders.slice(0, limit) : orders;
+    const nextCursor = hasMore ? data[data.length - 1].id : undefined;
 
     return NextResponse.json({
       success: true,
-      count: orders.length,
-      orders,
+      count: data.length,
+      orders: data,
+      pagination: {
+        total,
+        limit,
+        nextCursor,
+        hasMore,
+      },
     });
   } catch (error) {
     console.error("Error fetching orders:", error);
@@ -64,6 +92,9 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const limited = await rateLimitWrite(session.userId);
+    if (limited) return limited;
 
     const userId = session.userId;
 
