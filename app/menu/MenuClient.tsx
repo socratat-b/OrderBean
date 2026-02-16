@@ -1,7 +1,7 @@
 // app/menu/MenuClient.tsx - Client Component for interactivity
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
@@ -17,8 +17,17 @@ interface Product {
   available: boolean;
 }
 
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
 interface MenuClientProps {
   initialProducts: Product[];
+  initialPagination: Pagination;
 }
 
 const easeOut = [0.25, 0.46, 0.45, 0.94] as const;
@@ -38,8 +47,11 @@ const cardItem = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: easeOut } },
 };
 
-export default function MenuClient({ initialProducts }: MenuClientProps) {
+export default function MenuClient({ initialProducts, initialPagination }: MenuClientProps) {
   const router = useRouter();
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [pagination, setPagination] = useState<Pagination>(initialPagination);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { addToCart } = useCart();
@@ -49,6 +61,28 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
     addToCart(product, 1);
     addToast(`${product.name} added to cart!`, "success");
   };
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !pagination.hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = pagination.page + 1;
+      const params = new URLSearchParams({
+        page: nextPage.toString(),
+        limit: pagination.limit.toString(),
+      });
+      const res = await fetch(`/api/products?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProducts((prev) => [...prev, ...data.products]);
+        setPagination(data.pagination);
+      }
+    } catch (err) {
+      console.error("Failed to load more products:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, pagination]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -69,13 +103,13 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
   }, [isDropdownOpen]);
 
   // Get unique categories
-  const categories = ["All", ...new Set(initialProducts.map((p) => p.category))];
+  const categories = ["All", ...new Set(products.map((p) => p.category))];
 
   // Filter products by category
   const filteredProducts =
     selectedCategory === "All"
-      ? initialProducts
-      : initialProducts.filter((p) => p.category === selectedCategory);
+      ? products
+      : products.filter((p) => p.category === selectedCategory);
 
   return (
     <div className="min-h-dvh bg-background px-4 py-12 md:px-8">
@@ -120,7 +154,7 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
             >
               <div className="flex items-center justify-between">
                 <span>
-                  {selectedCategory} ({selectedCategory === "All" ? initialProducts.length : initialProducts.filter((p) => p.category === selectedCategory).length})
+                  {selectedCategory} ({selectedCategory === "All" ? products.length : products.filter((p) => p.category === selectedCategory).length})
                 </span>
                 <svg
                   className={`h-5 w-5 text-muted-foreground transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
@@ -143,8 +177,8 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
                 <div className="max-h-80 overflow-y-auto">
                   {categories.map((category) => {
                     const count = category === "All"
-                      ? initialProducts.length
-                      : initialProducts.filter((p) => p.category === category).length;
+                      ? products.length
+                      : products.filter((p) => p.category === category).length;
 
                     return (
                       <button
@@ -316,6 +350,33 @@ export default function MenuClient({ initialProducts }: MenuClientProps) {
               </motion.div>
             ))}
           </motion.div>
+        )}
+
+        {/* Load More Button */}
+        {pagination.hasMore && selectedCategory === "All" && (
+          <div className="mt-10 flex justify-center">
+            <motion.button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground shadow-md hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {loadingMore ? (
+                <span className="flex items-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Loading...
+                </span>
+              ) : (
+                `Load More (${products.length} of ${pagination.total})`
+              )}
+            </motion.button>
+          </div>
         )}
       </div>
     </div>
