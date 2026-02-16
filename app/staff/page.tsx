@@ -5,6 +5,8 @@ import StaffDashboardClient from "./_components/StaffDashboardClient";
 
 export const dynamic = "force-dynamic";
 
+const STAFF_ORDERS_PER_PAGE = 20;
+
 async function getOrders() {
   const session = await verifySession();
 
@@ -13,46 +15,61 @@ async function getOrders() {
     throw new Error("Access denied");
   }
 
-  const orders = await prisma.order.findMany({
-    take: 200, // Limit initial load for performance
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      take: STAFF_ORDERS_PER_PAGE + 1,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
-      },
-      orderItems: {
-        include: {
-          product: {
-            select: {
-              id: true,
-              name: true,
-              imageUrl: true,
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                imageUrl: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+    prisma.order.count(),
+  ]);
+
+  const hasMore = orders.length > STAFF_ORDERS_PER_PAGE;
+  const data = hasMore ? orders.slice(0, STAFF_ORDERS_PER_PAGE) : orders;
+  const nextCursor = hasMore ? data[data.length - 1].id : undefined;
 
   // Serialize dates for client
-  return orders.map(order => ({
-    ...order,
-    createdAt: order.createdAt.toISOString(),
-    updatedAt: order.updatedAt.toISOString(),
-  }));
+  return {
+    orders: data.map(order => ({
+      ...order,
+      createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
+    })),
+    pagination: {
+      total,
+      limit: STAFF_ORDERS_PER_PAGE,
+      nextCursor,
+      hasMore,
+    },
+  };
 }
 
 export default async function StaffPage() {
   try {
-    const orders = await getOrders();
+    const { orders, pagination } = await getOrders();
 
-    return <StaffDashboardClient initialOrders={orders} />;
+    return <StaffDashboardClient initialOrders={orders} initialPagination={pagination} />;
   } catch (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
