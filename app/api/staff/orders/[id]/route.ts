@@ -4,6 +4,7 @@ import { getSession } from "@/lib/dal";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { orderEvents, ORDER_EVENTS } from "@/lib/events";
+import { rateLimitWrite } from "@/lib/rate-limit";
 
 interface UpdateOrderBody {
   status: "PENDING" | "PREPARING" | "READY" | "COMPLETED" | "CANCELLED";
@@ -31,6 +32,9 @@ export async function PATCH(
         { status: 403 },
       );
     }
+
+    const limited = await rateLimitWrite(session.userId);
+    if (limited) return limited;
 
     const body: UpdateOrderBody = await request.json();
     const { status } = body;
