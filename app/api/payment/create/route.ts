@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/dal";
 import { createPaymentSource, toAtomicAmount } from "@/lib/paymongo";
 import { prisma } from "@/lib/prisma";
+import { rateLimitWrite } from "@/lib/rate-limit";
 
 interface PaymentRequest {
   items: {
@@ -18,6 +19,9 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const limited = await rateLimitWrite(session.userId);
+    if (limited) return limited;
 
     const userId = session.userId;
 
