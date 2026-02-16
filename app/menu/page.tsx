@@ -3,13 +3,29 @@ import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import MenuClient from "./MenuClient";
 
-// Cached function for fetching products
-// Following Next.js ISR best practices for ORM/database queries
+const PRODUCTS_PER_PAGE = 12;
+
+// Cached function for fetching first page of products
 const getCachedProducts = unstable_cache(
   async () => {
-    return await prisma.product.findMany({
-      orderBy: { name: "asc" },
-    });
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        orderBy: { name: "asc" },
+        take: PRODUCTS_PER_PAGE,
+      }),
+      prisma.product.count(),
+    ]);
+
+    return {
+      products,
+      pagination: {
+        total,
+        page: 1,
+        limit: PRODUCTS_PER_PAGE,
+        totalPages: Math.ceil(total / PRODUCTS_PER_PAGE),
+        hasMore: total > PRODUCTS_PER_PAGE,
+      },
+    };
   },
   ["products"], // Cache key
   {
@@ -19,7 +35,7 @@ const getCachedProducts = unstable_cache(
 );
 
 export default async function MenuPage() {
-  const products = await getCachedProducts();
+  const { products, pagination } = await getCachedProducts();
 
-  return <MenuClient initialProducts={products} />;
+  return <MenuClient initialProducts={products} initialPagination={pagination} />;
 }
