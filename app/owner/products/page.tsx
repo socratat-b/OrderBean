@@ -19,6 +19,14 @@ interface Product {
   updatedAt: string;
 }
 
+interface OffsetPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasMore: boolean;
+}
+
 export default function ProductsManagement() {
   // Check if we have cached data
   const getCachedProducts = () => {
@@ -37,6 +45,8 @@ export default function ProductsManagement() {
   const cachedProducts = getCachedProducts();
 
   const [products, setProducts] = useState<Product[]>(cachedProducts || []);
+  const [pagination, setPagination] = useState<OffsetPagination | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoading, setInitialLoading] = useState(!cachedProducts);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -75,8 +85,8 @@ export default function ProductsManagement() {
         setRefreshing(true);
       }
 
-      const response = await fetch("/api/owner/products", {
-        cache: "no-store", // Ensure fresh data but handle loading better
+      const response = await fetch("/api/owner/products?limit=20", {
+        cache: "no-store",
       });
 
       if (!response.ok) {
@@ -88,6 +98,7 @@ export default function ProductsManagement() {
 
       const data = await response.json();
       setProducts(data.products);
+      if (data.pagination) setPagination(data.pagination);
 
       // Cache the data in sessionStorage
       if (typeof window !== 'undefined') {
@@ -100,6 +111,24 @@ export default function ProductsManagement() {
     } finally {
       setInitialLoading(false);
       setRefreshing(false);
+    }
+  }
+
+  async function loadMore() {
+    if (loadingMore || !pagination?.hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = (pagination?.page || 1) + 1;
+      const response = await fetch(`/api/owner/products?page=${nextPage}&limit=${pagination?.limit || 20}`);
+      if (response.ok) {
+        const data = await response.json();
+        setProducts((prev) => [...prev, ...data.products]);
+        if (data.pagination) setPagination(data.pagination);
+      }
+    } catch (err) {
+      console.error("Failed to load more products:", err);
+    } finally {
+      setLoadingMore(false);
     }
   }
 
@@ -444,7 +473,7 @@ export default function ProductsManagement() {
             {products.map((product) => (
               <div
                 key={product.id}
-                className="overflow-hidden rounded-xl border border-border bg-card shadow-md hover:shadow-lg transition-shadow"
+                className="overflow-hidden rounded-xl border border-border bg-card shadow-md hover:shadow-lg transition-shadow owner-product-card"
               >
                 {/* Product Image */}
                 <div className="relative">
@@ -595,6 +624,29 @@ export default function ProductsManagement() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Load More Button */}
+        {pagination?.hasMore && (
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="rounded-xl bg-primary px-8 py-3 text-sm font-bold text-primary-foreground shadow-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {loadingMore ? (
+                <span className="flex items-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Loading...
+                </span>
+              ) : (
+                `Load More (${products.length} of ${pagination.total})`
+              )}
+            </button>
           </div>
         )}
       </div>
