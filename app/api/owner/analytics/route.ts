@@ -4,6 +4,7 @@ import { getSession } from "@/lib/dal";
 import { NextRequest, NextResponse } from "next/server";
 import { startOfDay, endOfDay, subDays } from "date-fns";
 import { Prisma } from "@/app/generated/prisma/client";
+import { rateLimitByUser } from "@/lib/rate-limit";
 
 // GET /api/owner/analytics - View business analytics (OWNER only)
 // Supports date filtering via query params: ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
@@ -23,6 +24,9 @@ export async function GET(request: NextRequest) {
         { status: 403 },
       );
     }
+
+    const limited = await rateLimitByUser(session.userId);
+    if (limited) return limited;
 
     // Parse date range from query parameters
     const searchParams = request.nextUrl.searchParams;
