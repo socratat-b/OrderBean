@@ -1,12 +1,16 @@
 // app/api/products/[id]/route.ts
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimitByIp } from "@/lib/rate-limit";
 
 export async function GET(
   request: NextRequest,
   { params }: RouteContext<"/api/products/[id]">,
 ) {
   try {
+    const limited = await rateLimitByIp(request);
+    if (limited) return limited;
+
     const { id } = await params;
 
     const product = await prisma.product.findUnique({
