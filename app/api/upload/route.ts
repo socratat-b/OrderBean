@@ -5,6 +5,7 @@ import path from "path";
 import { existsSync } from "fs";
 import crypto from "crypto";
 import { getSession } from "@/lib/dal";
+import { rateLimitWrite } from "@/lib/rate-limit";
 
 // Allowed image MIME types
 const ALLOWED_MIME_TYPES = new Set([
@@ -40,6 +41,9 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    const limited = await rateLimitWrite(session.userId);
+    if (limited) return limited;
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
