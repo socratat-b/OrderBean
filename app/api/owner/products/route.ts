@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/dal";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimitByUser, rateLimitWrite } from "@/lib/rate-limit";
 
 interface CreateProductBody {
   name: string;
@@ -34,16 +35,35 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const products = await prisma.product.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+    const limited = await rateLimitByUser(session.userId);
+    if (limited) return limited;
+
+    const { searchParams } = new URL(request.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "20", 10)));
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.product.count(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
 
     return NextResponse.json({
       success: true,
       count: products.length,
       products,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasMore: page < totalPages,
+      },
     });
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -71,6 +91,9 @@ export async function POST(request: NextRequest) {
         { status: 403 },
       );
     }
+
+    const limitedWrite = await rateLimitWrite(session.userId);
+    if (limitedWrite) return limitedWrite;
 
     const body: CreateProductBody = await request.json();
     const {
